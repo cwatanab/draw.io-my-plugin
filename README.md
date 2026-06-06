@@ -69,12 +69,25 @@ draw.io (diagrams.net) の機能を拡張する便利なプラグインの詰め
 
 ---
 
+## 3. draw.io Click Through Transparent Plugin (`click-through-transparent.js`)
+
+塗りつぶし（背景色）が設定されていないオブジェクト（`fillColor=none` など）の内部をクリックした際に、イベントを透過させてその背面にある別のオブジェクトを選択できるようにするプラグインです。
+
+### 概要
+draw.io では、塗りつぶしがないオブジェクトであっても、その境界ボックスの内部をクリックすると手前にあるオブジェクトが選択されてしまい、背後にあるオブジェクトが選択しづらくなる問題があります。
+このプラグインを導入すると、以下の挙動になります。
+- **オブジェクトの透過選択**: 塗りつぶしのないオブジェクトの内部をクリックすると、クリックイベントが透過し、その下にある別のオブジェクトが選択されます。
+- **枠線での選択**: 塗りつぶしのないオブジェクトであっても、外枠（境界線）の近くをクリックした場合は通常通りそのオブジェクトを選択できます。
+- **テキストラベル・特定の図形への配慮**: セル内にテキスト（ラベル）が記述されている場合、そのテキスト領域をクリックした際は透過せず、ダブルクリックによる編集等がスムーズに行えるよう配慮されています。また、テキストシェイプ（`shape=text` や `shape=label`）は自動的にこの機能の対象外となり、通常通りどこをクリックしても選択可能です。
+
+---
+
 ## インストール手順（共通）
 
 各プラグインを適用するには以下の手順を行います。
 
 ### 1. プラグインファイルの配置
-本リポジトリ内のプラグインファイル（[props-changer.js](file:///D:/Develop/drawio-props-changer/props-changer.js) または [hierarchy-viewer.js](file:///D:/Develop/drawio-props-changer/hierarchy-viewer.js)）をローカルの任意の場所に保存するか、Web サーバー等にホストします。
+本リポジトリ内のプラグインファイル（[props-changer.js](file:///D:/Develop/draw.io-my-plugin/props-changer.js), [hierarchy-viewer.js](file:///D:/Develop/draw.io-my-plugin/hierarchy-viewer.js) または [click-through-transparent.js](file:///D:/Develop/draw.io-my-plugin/click-through-transparent.js)）をローカルの任意の場所に保存するか、Web サーバー等にホストします。
 
 ### 2. draw.io での登録
 1. [draw.io](https://app.diagrams.net/) をブラウザで開くか、デスクトップ版を起動します。
