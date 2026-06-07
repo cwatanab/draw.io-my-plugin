@@ -4,7 +4,7 @@ draw.io (diagrams.net) の機能を拡張する便利なプラグインの詰め
 
 ---
 
-## 1. draw.io Props Changer Plugin (`props-changer.js`)
+## 1. draw.io Quick Styler Plugin (`quick-styler.js`)
 
 選択した図形のプロパティ（スタイル）を、右クリックのコンテキストメニューから簡単に切り替えられるようにするプラグインです。
 
@@ -22,9 +22,9 @@ draw.io (diagrams.net) の機能を拡張する便利なプラグインの詰め
    - 現在 ON の項目にはチェックマーク（✔）が表示されます。
 
 ### 設定とカスタマイズ
-本プラグインの設定は [props-changer.js](props-changer.js) の先頭にある `CONFIG` オブジェクトに直接記述（ハードコード）されています。
+本プラグインの設定は [quick-styler.js](quick-styler.js) の先頭にある `CONFIG` オブジェクトに直接記述（ハードコード）されています。
 
-プロパティの追加・編集を行う場合は、[props-changer.js](props-changer.js) を直接開いて `CONFIG` オブジェクトの内容を書き換えてください。
+プロパティの追加・編集を行う場合は、[quick-styler.js](quick-styler.js) を直接開いて `CONFIG` オブジェクトの内容を書き換えてください。
 
 #### 設定項目の一覧
 
@@ -106,7 +106,7 @@ draw.io のデフォルトの操作ハンドルや接続ポイントはサイズ
 各プラグインを適用するには以下の手順を行います。
 
 ### 1. プラグインファイルの配置
-本リポジトリ内のプラグインファイル（[props-changer.js](props-changer.js), [hierarchy-viewer.js](hierarchy-viewer.js) または [handle-scaler.js](handle-scaler.js)）をローカルの任意の場所に保存するか、Web サーバー等にホストします。
+本リポジトリ内のプラグインファイル（[quick-styler.js](quick-styler.js), [hierarchy-viewer.js](hierarchy-viewer.js) または [handle-scaler.js](handle-scaler.js)）をローカルの任意の場所に保存するか、Web サーバー等にホストします。
 
 ### 2. draw.io での登録
 1. [draw.io](https://app.diagrams.net/) をブラウザで開くか、デスクトップ版を起動します。
