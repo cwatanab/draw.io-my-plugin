@@ -25,11 +25,11 @@
     }
 
     var CONFIG = {
-        menuLabel: '簡易プロパティ編集',
+        menuLabel: 'プロパティ',
         properties: [
             {
                 key: 'expand',
-                label: '図のサイズを拡張',
+                label: '連動してサイズを拡張する',
                 values: [
                     { value: '1', label: 'ON' },
                     { value: '0', label: 'OFF' }
@@ -37,7 +37,7 @@
             },
             {
                 key: 'autosize',
-                label: '自動サイズ調整',
+                label: 'テキストに併せてサイズを調整する',
                 defaultOff: true,
                 values: [
                     { value: '1', label: 'ON' },
@@ -46,7 +46,7 @@
             },
             {
                 key: 'resizable',
-                label: 'リサイズを禁止',
+                label: 'リサイズを禁止する',
                 defaultOff: true,
                 values: [
                     { value: '1', label: '許可' },
@@ -55,20 +55,11 @@
             },
             {
                 key: 'movable',
-                label: '位置を固定',
+                label: '位置を固定する',
                 defaultOff: true,
                 values: [
                     { value: '1', label: '許可' },
                     { value: '0', label: '禁止' }
-                ]
-            },
-            {
-                key: 'sketch',
-                label: 'スケッチ',
-                defaultOff: true,
-                values: [
-                    { value: '1', label: 'ON' },
-                    { value: '0', label: 'OFF' }
                 ]
             },
             {
@@ -81,27 +72,27 @@
                 ]
             },
             {
-                key: 'allowArrows',
-                label: '矢印を許可',
-                values: [
-                    { value: '1', label: 'ON' },
-                    { value: '0', label: 'OFF' }
-                ]
-            },
-            {
-                key: 'connectable',
-                label: '接続可能',
-                values: [
-                    { value: '1', label: 'ON' },
-                    { value: '0', label: 'OFF' }
-                ]
-            },
-            {
                 key: 'snapToPoint',
                 label: 'ポイントにスナップ',
                 values: [
                     { value: '1', label: 'ON' },
                     { value: '0', label: 'OFF' }
+                ]
+            },
+            {
+                key: 'allowArrows',
+                label: '矢印を出さない',
+                values: [
+                    { value: '1', label: 'OFF' },
+                    { value: '0', label: 'ON' }
+                ]
+            },
+            {
+                key: 'connectable',
+                label: '接続できなくする',
+                values: [
+                    { value: '1', label: 'OFF' },
+                    { value: '0', label: 'ON' }
                 ]
             }
         ]
@@ -157,8 +148,7 @@
                             checked = (cur !== prop.values[1].value);
                         }
                         var nextVal = checked ? prop.values[1].value : prop.values[0].value;
-                        var curLabel = checked ? prop.values[0].label : prop.values[1].label;
-                        var label = (checked ? '\u2714 ' : '\u3000 ') + prop.label + ' [' + curLabel + ']';
+                        var label = (checked ? '\u2714 ' : '\u3000 ') + prop.label;
 
                         menu.addItem(label, null, function() {
                             setProp(graph, prop.key, nextVal);
