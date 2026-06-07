@@ -9,12 +9,18 @@
 
     var pluginName = 'Handle Scaler';
 
+    /**
+     * @param {string} message
+     */
     function log(message) {
         if (typeof console !== 'undefined' && console.log) {
             console.log(pluginName + ': ' + message);
         }
     }
 
+    /**
+     * @param {string} message
+     */
     function warn(message) {
         if (typeof console !== 'undefined' && console.warn) {
             console.warn(pluginName + ': ' + message);
@@ -41,7 +47,14 @@
 
         // --- ヘルパー関数 ---
 
-        // ズーム比に応じたサイズ計算（100%〜800%で緩やかに最大サイズへ変化）
+        /**
+         * ズーム比に応じたサイズ計算（100%〜800%で緩やかに最大サイズへ変化）
+         * @param {number} baseSize
+         * @param {number} maxSize
+         * @param {number} scale
+         * @param {number} minSize
+         * @returns {number}
+         */
         var getScaledSize = function(baseSize, maxSize, scale, minSize) {
             var size;
             if (scale >= 1) {
@@ -55,7 +68,13 @@
             return Math.max(minSize || 4, Math.round(size));
         };
 
-        // 設定に応じた sizer ハンドルの形状を生成する
+        /**
+         * 設定に応じた sizer ハンドルの形状を生成する
+         * @param {mxRectangle} bounds
+         * @param {number} index
+         * @param {string} fillColor
+         * @returns {mxShape}
+         */
         var getSizerShape = function(bounds, index, fillColor) {
             if (CONFIG.roundHandles) {
                 return new mxEllipse(bounds, fillColor || mxConstants.HANDLE_FILLCOLOR, mxConstants.HANDLE_STROKECOLOR);
@@ -64,7 +83,12 @@
             }
         };
 
-        // sizers ハンドル配列の各 bounds サイズを最新の設定値に書き換える
+        /**
+         * sizers ハンドル配列の各 bounds サイズを最新の設定値に書き換える
+         * @param {Array} sizers
+         * @param {mxShape} labelShape
+         * @param {mxShape} rotationShape
+         */
         var updateSizersBounds = function(sizers, labelShape, rotationShape) {
             if (sizers == null) return;
             for (var i = 0; i < sizers.length; i++) {

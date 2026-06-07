@@ -6,12 +6,18 @@
 
     var pluginName = 'Props Changer';
 
+    /**
+     * @param {string} message
+     */
     function log(message) {
         if (typeof console !== 'undefined' && console.log) {
             console.log(pluginName + ': ' + message);
         }
     }
 
+    /**
+     * @param {string} message
+     */
     function warn(message) {
         if (typeof console !== 'undefined' && console.warn) {
             console.warn(pluginName + ': ' + message);
@@ -74,6 +80,11 @@
         ]
     };
 
+    /**
+     * @param {mxGraph} graph
+     * @param {string} key
+     * @param {string} value
+     */
     function setProp(graph, key, value) {
         var cells = graph.getSelectionCells();
         if (cells.length > 0) {
@@ -82,6 +93,12 @@
         }
     }
 
+    /**
+     * @param {mxGraph} graph
+     * @param {mxCell} cell
+     * @param {string} key
+     * @returns {string|null}
+     */
     function getCurrentVal(graph, cell, key) {
         var resolved = graph.getCellStyle(cell);
         if (resolved[key]) return resolved[key];

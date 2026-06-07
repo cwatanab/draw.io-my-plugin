@@ -6,12 +6,18 @@
 
     var pluginName = 'Hierarchy Viewer';
 
+    /**
+     * @param {string} message
+     */
     function log(message) {
         if (typeof console !== 'undefined' && console.log) {
             console.log(pluginName + ': ' + message);
         }
     }
 
+    /**
+     * @param {string} message
+     */
     function warn(message) {
         if (typeof console !== 'undefined' && console.warn) {
             console.warn(pluginName + ': ' + message);
@@ -77,7 +83,11 @@
             // Drag state (closure-scoped instead of window global)
             var draggedCell = null;
 
-            // Helper to check if child is a descendant of parent
+            /**
+             * @param {mxCell} parent
+             * @param {mxCell} child
+             * @returns {boolean}
+             */
             function isDescendant(parent, child) {
                 var node = child;
                 while (node != null) {
@@ -89,7 +99,9 @@
                 return false;
             }
 
-            // Clear all drag over styles in the tree
+            /**
+             * @param {Element} [exceptItem]
+             */
             function clearDragOverStyles(exceptItem) {
                 var items = container.querySelectorAll('.hierarchy-item');
                 for (var i = 0; i < items.length; i++) {
@@ -99,7 +111,10 @@
                 }
             }
 
-            // Helper to get raw edit label for a cell (excluding icons/terminal status)
+            /**
+             * @param {mxCell} cell
+             * @returns {string}
+             */
             function getRawCellLabel(cell) {
                 if (cell.value) {
                     if (typeof cell.value === 'object' && cell.value.getAttribute) {
@@ -110,7 +125,10 @@
                 return '';
             }
 
-            // Helper to get printable label for a cell
+            /**
+             * @param {mxCell} cell
+             * @returns {string}
+             */
             function getCellLabel(cell) {
                 var raw = getRawCellLabel(cell);
                 if (raw) return raw;
@@ -125,7 +143,13 @@
                 return '[図形 ' + (cell.id || '') + ']';
             }
 
-            // Determine drop position (before/after/inside) based on cursor Y within an item
+            /**
+             * @param {Event} e
+             * @param {Element} itemEl
+             * @param {boolean} isLayer
+             * @param {mxCell} targetCell
+             * @returns {string} 'before' | 'after' | 'inside'
+             */
             function getDropPosition(e, itemEl, isLayer, targetCell) {
                 var rect = itemEl.getBoundingClientRect();
                 var relativeY = e.clientY - rect.top;
@@ -143,7 +167,14 @@
                 return 'inside';
             }
 
-            // Create inline rename editor; returns the startEditing trigger function
+            /**
+             * @param {mxCell} cell
+             * @param {Element} dragHandle
+             * @param {Element} labelSpan
+             * @param {Element} rightContainer
+             * @param {string} prefix
+             * @returns {Function} startEditing trigger function
+             */
             function setupRename(cell, dragHandle, labelSpan, rightContainer, prefix) {
                 return function startEditing() {
                     dragHandle.setAttribute('draggable', 'false');
@@ -209,7 +240,12 @@
                 };
             }
 
-            // Attach drag & drop handlers to an item
+            /**
+             * @param {Element} item
+             * @param {mxCell} cell
+             * @param {Element} dragHandle
+             * @param {boolean} isLayer
+             */
             function setupDragDrop(item, cell, dragHandle, isLayer) {
                 dragHandle.setAttribute('draggable', 'true');
 
@@ -280,7 +316,12 @@
                 };
             }
 
-            // Create DOM element for a single hierarchy item (non-root node)
+            /**
+             * @param {mxCell} cell
+             * @param {boolean} isLayer
+             * @param {boolean} isSelected
+             * @returns {Element}
+             */
             function createItemDom(cell, isLayer, isSelected) {
                 var item = document.createElement('div');
                 item.className = 'hierarchy-item' + (isSelected ? ' hierarchy-item-selected' : '');
@@ -396,7 +437,12 @@
                 return item;
             }
 
-            // Recursively build the tree DOM
+            /**
+             * @param {mxCell} cell
+             * @param {number} depth
+             * @param {boolean} isSelected
+             * @returns {Element}
+             */
             function buildTreeDom(cell, depth, isSelected) {
                 var wrapper = document.createElement('div');
 
@@ -420,7 +466,9 @@
                 return wrapper;
             }
 
-            // Render the hierarchy tree
+            /**
+             * Render the hierarchy tree.
+             */
             function refreshTree() {
                 container.innerHTML = '';
                 
@@ -461,7 +509,9 @@
                 }
             });
 
-            // Toggle window visibility function
+            /**
+             * Toggle window visibility.
+             */
             function toggleWindow() {
                 wnd.setVisible(!wnd.isVisible());
                 if (wnd.isVisible()) {
@@ -475,7 +525,9 @@
             var action = ui.actions.addAction(actionName, toggleWindow);
             action.label = menuLabel;
 
-            // Add menu item under Extras (その他) or View (表示) using robust direct addItem
+            /**
+             * Register menu item under Extras or View.
+             */
             function registerMenu() {
                 var menu = ui.menus.get('extras') || ui.menus.get('view');
                 if (menu) {

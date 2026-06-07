@@ -12,18 +12,28 @@
     var oldGraphMarker = '__clickThroughTransparentOldPatched';
     var patchVersion = 2;
 
+    /**
+     * @param {string} message
+     */
     function log(message) {
         if (typeof console !== 'undefined' && console.log) {
             console.log(pluginName + ': ' + message);
         }
     }
 
+    /**
+     * @param {string} message
+     */
     function warn(message) {
         if (typeof console !== 'undefined' && console.warn) {
             console.warn(pluginName + ': ' + message);
         }
     }
 
+    /**
+     * @param {Event} evt
+     * @returns {boolean}
+     */
     function isAltDown(evt) {
         if (evt == null) {
             return false;
@@ -36,6 +46,10 @@
         return !!evt.altKey;
     }
 
+    /**
+     * @param {mxMouseEvent} me
+     * @returns {mxCell|null}
+     */
     function getMouseCell(me) {
         if (me != null && me.getCell != null) {
             var cell = me.getCell();
@@ -49,6 +63,10 @@
         return (state != null) ? state.cell : null;
     }
 
+    /**
+     * @param {mxMouseEvent} me
+     * @returns {number|null}
+     */
     function getGraphX(me) {
         if (me == null) {
             return null;
@@ -58,6 +76,10 @@
             (me.getGraphX != null ? me.getGraphX() : null);
     }
 
+    /**
+     * @param {mxMouseEvent} me
+     * @returns {number|null}
+     */
     function getGraphY(me) {
         if (me == null) {
             return null;
@@ -67,6 +89,12 @@
             (me.getGraphY != null ? me.getGraphY() : null);
     }
 
+    /**
+     * @param {mxGraph} graph
+     * @param {mxMouseEvent} me
+     * @param {Function} ignoreFn
+     * @returns {mxCell|null}
+     */
     function getCellAt(graph, me, ignoreFn) {
         var x = getGraphX(me);
         var y = getGraphY(me);
@@ -78,6 +106,12 @@
         return graph.getCellAt(x, y, null, null, null, ignoreFn);
     }
 
+    /**
+     * @param {mxGraph} graph
+     * @param {mxMouseEvent} me
+     * @param {mxCell} cell
+     * @returns {mxCell|null}
+     */
     function getNativeTransparentClickCell(graph, me, cell) {
         var active = false;
 
@@ -90,6 +124,12 @@
         });
     }
 
+    /**
+     * @param {mxGraph} graph
+     * @param {mxMouseEvent} me
+     * @param {mxCell} cell
+     * @returns {mxCell|null}
+     */
     function getChildCellBelow(graph, me, cell) {
         var model = graph != null ? graph.model : null;
 
@@ -109,6 +149,11 @@
             null;
     }
 
+    /**
+     * @param {mxGraphHandler} handler
+     * @param {mxMouseEvent} me
+     * @returns {mxCell|null}
+     */
     function getNormalClickCell(handler, me) {
         var graph = handler.graph;
         var cell = getMouseCell(me);
@@ -128,6 +173,9 @@
         return (childCell != null) ? childCell : cell;
     }
 
+    /**
+     * @param {mxGraph} graph
+     */
     function restoreOldTransparentPatch(graph) {
         if (graph != null &&
             graph[oldGraphMarker] != null &&
@@ -137,6 +185,9 @@
         }
     }
 
+    /**
+     * @returns {boolean}
+     */
     function patchGraphHandler() {
         if (typeof mxGraphHandler === 'undefined' ||
             mxGraphHandler.prototype == null ||
