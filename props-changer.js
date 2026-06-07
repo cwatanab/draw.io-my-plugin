@@ -82,17 +82,19 @@
             {
                 key: 'allowArrows',
                 label: '矢印を出さない',
+                defaultOff: true,
                 values: [
-                    { value: '1', label: 'OFF' },
-                    { value: '0', label: 'ON' }
+                    { value: '0', label: 'ON' },
+                    { value: '1', label: 'OFF' }
                 ]
             },
             {
                 key: 'connectable',
                 label: '接続できなくする',
+                defaultOff: true,
                 values: [
-                    { value: '1', label: 'OFF' },
-                    { value: '0', label: 'ON' }
+                    { value: '0', label: 'ON' },
+                    { value: '1', label: 'OFF' }
                 ]
             }
         ]
