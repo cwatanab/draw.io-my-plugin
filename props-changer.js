@@ -94,6 +94,15 @@
                     { value: '1', label: '許可' },
                     { value: '0', label: '禁止' }
                 ]
+            },
+            {
+                key: 'movable',
+                label: '移動を禁止',
+                defaultOff: true,
+                values: [
+                    { value: '1', label: '許可' },
+                    { value: '0', label: '禁止' }
+                ]
             }
         ]
     };
