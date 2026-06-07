@@ -49,8 +49,8 @@
                 label: 'リサイズを禁止する',
                 defaultOff: true,
                 values: [
-                    { value: '1' },
-                    { value: '0' }
+                    { value: '0' },
+                    { value: '1' }
                 ]
             },
             {
@@ -58,8 +58,8 @@
                 label: '位置を固定する',
                 defaultOff: true,
                 values: [
-                    { value: '1' },
-                    { value: '0' }
+                    { value: '0' },
+                    { value: '1' }
                 ]
             },
             {
