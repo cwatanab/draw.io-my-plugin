@@ -5,6 +5,22 @@
  * 表示サイズおよび判定サイズを大きくして、操作性を向上させます。
  */
 (function() {
+    'use strict';
+
+    var pluginName = 'Handle Scaler';
+
+    function log(message) {
+        if (typeof console !== 'undefined' && console.log) {
+            console.log(pluginName + ': ' + message);
+        }
+    }
+
+    function warn(message) {
+        if (typeof console !== 'undefined' && console.warn) {
+            console.warn(pluginName + ': ' + message);
+        }
+    }
+
     var CONFIG = {
         handleSize: 10,       // 頂点の選択・リサイズハンドルのサイズ（デフォルト: 6〜7）
         labelHandleSize: 6,    // テキストラベルの移動ハンドルのサイズ（デフォルト: 4）
@@ -14,6 +30,11 @@
         maxHandleSize: 24,     // ズーム時のハンドルサイズの上限（ピクセル）
         maxPointSize: 12       // ズーム時の接続ポイントサイズの上限（ピクセル）
     };
+
+    if (typeof Draw === 'undefined' || Draw.loadPlugin == null) {
+        warn('Draw.loadPlugin is not available.');
+        return;
+    }
 
     Draw.loadPlugin(function(ui) {
         var graph = ui.editor.graph;
@@ -156,6 +177,6 @@
             graph.view.addListener(mxEvent.SCALE_AND_TRANSLATE, updateSizes);
         }
 
-        console.log('handle-scaler: loaded (handleSize=' + CONFIG.handleSize + ', pointSize=' + CONFIG.pointImageSize + ', dynamicZoom=true)');
+        log('loaded (handleSize=' + CONFIG.handleSize + ', pointSize=' + CONFIG.pointImageSize + ', dynamicZoom=true)');
     });
 })();

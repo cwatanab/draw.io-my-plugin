@@ -2,6 +2,27 @@
  * draw.io Hierarchy Viewer Plugin
  */
 (function() {
+    'use strict';
+
+    var pluginName = 'Hierarchy Viewer';
+
+    function log(message) {
+        if (typeof console !== 'undefined' && console.log) {
+            console.log(pluginName + ': ' + message);
+        }
+    }
+
+    function warn(message) {
+        if (typeof console !== 'undefined' && console.warn) {
+            console.warn(pluginName + ': ' + message);
+        }
+    }
+
+    if (typeof Draw === 'undefined' || Draw.loadPlugin == null) {
+        warn('Draw.loadPlugin is not available.');
+        return;
+    }
+
     Draw.loadPlugin(function(ui) {
         var graph = ui.editor.graph;
         
@@ -467,9 +488,9 @@
                             toggleWindow();
                         }, parent);
                     };
-                    console.log('hierarchy-viewer: registered in menu successfully');
+                    log('registered in menu successfully');
                 } else {
-                    console.warn('hierarchy-viewer: Extras or View menu not found');
+                    warn('Extras or View menu not found');
                 }
             }
 
@@ -481,10 +502,10 @@
             // Initialize window as invisible
             wnd.setVisible(false);
             
-            console.log('hierarchy-viewer: loaded successfully');
+            log('loaded.');
 
         } catch (e) {
-            console.error('hierarchy-viewer plugin load error:', e);
+            warn('plugin load error: ' + e);
         }
     });
 })();

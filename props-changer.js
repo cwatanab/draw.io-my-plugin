@@ -2,6 +2,22 @@
  * draw.io Props Changer Plugin
  */
 (function() {
+    'use strict';
+
+    var pluginName = 'Props Changer';
+
+    function log(message) {
+        if (typeof console !== 'undefined' && console.log) {
+            console.log(pluginName + ': ' + message);
+        }
+    }
+
+    function warn(message) {
+        if (typeof console !== 'undefined' && console.warn) {
+            console.warn(pluginName + ': ' + message);
+        }
+    }
+
     var CONFIG = {
         menuLabel: '簡易プロパティ編集',
         properties: [
@@ -73,6 +89,11 @@
         return match ? match[1] : null;
     }
 
+    if (typeof Draw === 'undefined' || Draw.loadPlugin == null) {
+        warn('Draw.loadPlugin is not available.');
+        return;
+    }
+
     Draw.loadPlugin(function(ui) {
         var graph = ui.editor.graph;
         var menus = ui.menus;
@@ -114,6 +135,6 @@
             });
         };
 
-        console.log('props-changer: loaded (' + CONFIG.properties.length + ' properties)');
+        log('loaded (' + CONFIG.properties.length + ' properties)');
     });
 })();
