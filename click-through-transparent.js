@@ -1,85 +1,215 @@
 /**
- * draw.io Click Through Transparent Plugin
- * 
- * 塗りつぶしのないオブジェクト（透明なオブジェクト）の内部をクリックした際、
- * イベントを透過させて背面にある別のオブジェクトを選択できるようにします。
- * 枠線（境界線）やテキストラベルをクリックした場合は、通常通りそのオブジェクトが選択されます。
+ * Draw.io / diagrams.net plugin: Click Through Transparent
+ *
+ * 通常クリック時、透明な図形をスルーして背面の図形を選択します。
+ * Alt+クリック時はdraw.io本来の挙動のままです。
  */
 (function() {
-    Draw.loadPlugin(function(ui) {
-        var graph = ui.editor.graph;
-        
-        var originalGetCellAt = graph.getCellAt;
-        graph.getCellAt = function(x, y, parent, vertices, edges, ignoreFn) {
-            var self = this;
-            
-            var customIgnoreFn = function(cell) {
-                // 元の ignoreFn が指定されている場合はまずそれを適用
-                if (ignoreFn && ignoreFn(cell)) {
-                    return true;
-                }
-                
-                // 頂点かつ、選択可能なセルの場合のみ透過判定を行う
-                if (self.model.isVertex(cell)) {
-                    var state = self.view.getState(cell);
-                    if (state != null) {
-                        var style = state.style || {};
-                        var fillColor = style['fillColor'];
-                        
-                        // 塗りつぶしが設定されていない（none、または値が存在しない）
-                        var isTransparent = (!fillColor || fillColor === 'none');
-                        
-                        // テキストシェイプやラベルシェイプは透過させない
-                        var shape = style['shape'];
-                        var isTextOrLabel = (shape === 'text' || shape === 'label');
-                        
-                        if (isTransparent && !isTextOrLabel) {
-                            var scale = self.view.scale;
-                            var translate = self.view.translate;
-                            var screenX = (x + translate.x) * scale;
-                            var screenY = (y + translate.y) * scale;
-                            
-                            // 1. ラベル（テキスト）領域のクリック判定
-                            // ラベル領域をクリックした場合は、透過させずに選択可能にする
-                            if (state.labelBounds != null &&
-                                screenX >= state.labelBounds.x &&
-                                screenX <= state.labelBounds.x + state.labelBounds.width &&
-                                screenY >= state.labelBounds.y &&
-                                screenY <= state.labelBounds.y + state.labelBounds.height) {
-                                return false;
-                            }
-                            
-                            // 2. 境界線（枠線）のクリック判定
-                            // 枠線の周りに一定の許容誤差（tolerance）を持たせ、その範囲内であれば選択可能にする
-                            var strokeWidth = parseFloat(style['strokeWidth'] || 1) * scale;
-                            var tol = Math.max(8, strokeWidth + 4); // クリック判定の許容範囲（ピクセル）
-                            
-                            var rx = state.x;
-                            var ry = state.y;
-                            var rw = state.width;
-                            var rh = state.height;
-                            
-                            var dx1 = Math.abs(screenX - rx);
-                            var dx2 = Math.abs(screenX - (rx + rw));
-                            var dy1 = Math.abs(screenY - ry);
-                            var dy2 = Math.abs(screenY - (ry + rh));
-                            
-                            var minDist = Math.min(dx1, dx2, dy1, dy2);
-                            var isOnBorder = (minDist <= tol);
-                            
-                            // 境界線上でなければ、このセルを無視（透過）して背面を探索する
-                            if (!isOnBorder) {
-                                return true;
-                            }
-                        }
-                    }
-                }
-                return false;
-            };
-            
-            return originalGetCellAt.call(this, x, y, parent, vertices, edges, customIgnoreFn);
+    'use strict';
+
+    var pluginName = 'Click Through Transparent';
+    var handlerMarker = '__clickThroughTransparentPatched';
+    var oldGraphMarker = '__clickThroughTransparentOldPatched';
+    var patchVersion = 2;
+
+    function log(message) {
+        if (typeof console !== 'undefined' && console.log) {
+            console.log(pluginName + ': ' + message);
+        }
+    }
+
+    function warn(message) {
+        if (typeof console !== 'undefined' && console.warn) {
+            console.warn(pluginName + ': ' + message);
+        }
+    }
+
+    function isAltDown(evt) {
+        if (evt == null) {
+            return false;
+        }
+
+        if (typeof mxEvent !== 'undefined' && mxEvent.isAltDown) {
+            return mxEvent.isAltDown(evt);
+        }
+
+        return !!evt.altKey;
+    }
+
+    function getMouseCell(me) {
+        if (me != null && me.getCell != null) {
+            var cell = me.getCell();
+
+            if (cell != null) {
+                return cell;
+            }
+        }
+
+        var state = (me != null && me.getState != null) ? me.getState() : null;
+        return (state != null) ? state.cell : null;
+    }
+
+    function getGraphX(me) {
+        if (me == null) {
+            return null;
+        }
+
+        return (me.graphX != null) ? me.graphX :
+            (me.getGraphX != null ? me.getGraphX() : null);
+    }
+
+    function getGraphY(me) {
+        if (me == null) {
+            return null;
+        }
+
+        return (me.graphY != null) ? me.graphY :
+            (me.getGraphY != null ? me.getGraphY() : null);
+    }
+
+    function getCellAt(graph, me, ignoreFn) {
+        var x = getGraphX(me);
+        var y = getGraphY(me);
+
+        if (graph == null || graph.getCellAt == null || x == null || y == null) {
+            return null;
+        }
+
+        return graph.getCellAt(x, y, null, null, null, ignoreFn);
+    }
+
+    function getNativeTransparentClickCell(graph, me, cell) {
+        var active = false;
+
+        return getCellAt(graph, me, function(state) {
+            var selected = graph.isCellSelected(state.cell);
+            active = active || selected;
+
+            return !active || selected ||
+                (state.cell !== cell && graph.model.isAncestor(state.cell, cell));
+        });
+    }
+
+    function getChildCellBelow(graph, me, cell) {
+        var model = graph != null ? graph.model : null;
+
+        if (model == null ||
+            model.getChildCount == null ||
+            model.isAncestor == null ||
+            model.getChildCount(cell) === 0) {
+            return null;
+        }
+
+        var child = getCellAt(graph, me, function(state) {
+            return state.cell === cell;
+        });
+
+        return (child != null && child !== cell && model.isAncestor(cell, child)) ?
+            child :
+            null;
+    }
+
+    function getNormalClickCell(handler, me) {
+        var graph = handler.graph;
+        var cell = getMouseCell(me);
+
+        if (cell == null) {
+            return null;
+        }
+
+        var transparentCell = getNativeTransparentClickCell(graph, me, cell);
+
+        if (transparentCell != null && transparentCell !== cell) {
+            return transparentCell;
+        }
+
+        var childCell = getChildCellBelow(graph, me, cell);
+
+        return (childCell != null) ? childCell : cell;
+    }
+
+    function restoreOldTransparentPatch(graph) {
+        if (graph != null &&
+            graph[oldGraphMarker] != null &&
+            graph[oldGraphMarker].isTransparentClickEvent != null) {
+            graph.isTransparentClickEvent = graph[oldGraphMarker].isTransparentClickEvent;
+            graph[oldGraphMarker] = null;
+        }
+    }
+
+    function patchGraphHandler() {
+        if (typeof mxGraphHandler === 'undefined' ||
+            mxGraphHandler.prototype == null ||
+            mxGraphHandler.prototype.getInitialCellForEvent == null ||
+            mxGraphHandler.prototype.selectCellForEvent == null) {
+            warn('mxGraphHandler is not available; selection hook was not installed.');
+            return false;
+        }
+
+        var prototype = mxGraphHandler.prototype;
+        var previousPatch = prototype[handlerMarker];
+
+        if (previousPatch != null && previousPatch.version === patchVersion) {
+            return true;
+        }
+
+        var originalGetInitialCellForEvent =
+            (previousPatch != null && previousPatch.getInitialCellForEvent != null) ?
+                previousPatch.getInitialCellForEvent :
+                prototype.getInitialCellForEvent;
+
+        var originalSelectCellForEvent =
+            (previousPatch != null && previousPatch.selectCellForEvent != null) ?
+                previousPatch.selectCellForEvent :
+                prototype.selectCellForEvent;
+
+        prototype[handlerMarker] = {
+            version: patchVersion,
+            getInitialCellForEvent: originalGetInitialCellForEvent,
+            selectCellForEvent: originalSelectCellForEvent
         };
-        
-        console.log('click-through-transparent: loaded');
+
+        prototype.getInitialCellForEvent = function(me) {
+            if (isAltDown(me.getEvent())) {
+                return originalGetInitialCellForEvent.apply(this, arguments);
+            }
+
+            var cell = getNormalClickCell(this, me);
+
+            return (cell != null) ?
+                cell :
+                originalGetInitialCellForEvent.apply(this, arguments);
+        };
+
+        prototype.selectCellForEvent = function(cell, me) {
+            if (isAltDown(me.getEvent())) {
+                return originalSelectCellForEvent.apply(this, arguments);
+            }
+
+            var state = this.graph.view.getState(cell);
+
+            if (state != null) {
+                this.graph.selectCellForEvent(cell, me.getEvent());
+            }
+
+            return cell;
+        };
+
+        return true;
+    }
+
+    if (typeof Draw === 'undefined' || Draw.loadPlugin == null) {
+        warn('Draw.loadPlugin is not available.');
+        return;
+    }
+
+    Draw.loadPlugin(function(ui) {
+        var graph = ui != null && ui.editor != null ? ui.editor.graph : null;
+
+        restoreOldTransparentPatch(graph);
+
+        if (patchGraphHandler()) {
+            log('loaded.');
+        }
     });
 })();
