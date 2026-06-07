@@ -22,9 +22,9 @@ draw.io (diagrams.net) の機能を拡張する便利なプラグインの詰め
    - 現在 ON の項目にはチェックマーク（✔）が表示されます。
 
 ### 設定とカスタマイズ
-本プラグインの設定は [props-changer.js](file:///D:/Develop/drawio-props-changer/props-changer.js) の先頭にある `CONFIG` オブジェクトに直接記述（ハードコード）されています。
+本プラグインの設定は [props-changer.js](props-changer.js) の先頭にある `CONFIG` オブジェクトに直接記述（ハードコード）されています。
 
-プロパティの追加・編集を行う場合は、[props-changer.js](file:///D:/Develop/drawio-props-changer/props-changer.js) を直接開いて `CONFIG` オブジェクトの内容を書き換えてください。
+プロパティの追加・編集を行う場合は、[props-changer.js](props-changer.js) を直接開いて `CONFIG` オブジェクトの内容を書き換えてください。
 
 #### 設定項目の一覧
 
@@ -97,7 +97,7 @@ draw.io のデフォルトの操作ハンドルや接続ポイントはサイズ
 - **接続のホバー判定拡張**: 接続ポイントの判定範囲（許容誤差）を拡大し、少し離れた位置からのドラッグでも接続が吸着しやすくなるよう調整します。**判定範囲もズーム倍率に応じて動的に伸縮します。**
 
 ### 設定とカスタマイズ
-本プラグインの設定は [handle-scaler.js](file:///D:/Develop/draw.io-my-plugin/handle-scaler.js) の先頭にある `CONFIG` オブジェクトに記述されています。
+本プラグインの設定は [handle-scaler.js](handle-scaler.js) の先頭にある `CONFIG` オブジェクトに記述されています。
 
 必要に応じて数値を書き換えてサイズを調整してください。
 
@@ -118,7 +118,7 @@ draw.io のデフォルトの操作ハンドルや接続ポイントはサイズ
 各プラグインを適用するには以下の手順を行います。
 
 ### 1. プラグインファイルの配置
-本リポジトリ内のプラグインファイル（[props-changer.js](file:///D:/Develop/draw.io-my-plugin/props-changer.js), [hierarchy-viewer.js](file:///D:/Develop/draw.io-my-plugin/hierarchy-viewer.js), [click-through-transparent.js](file:///D:/Develop/draw.io-my-plugin/click-through-transparent.js) または [handle-scaler.js](file:///D:/Develop/draw.io-my-plugin/handle-scaler.js)）をローカルの任意の場所に保存するか、Web サーバー等にホストします。
+本リポジトリ内のプラグインファイル（[props-changer.js](props-changer.js), [hierarchy-viewer.js](hierarchy-viewer.js), [click-through-transparent.js](click-through-transparent.js) または [handle-scaler.js](handle-scaler.js)）をローカルの任意の場所に保存するか、Web サーバー等にホストします。
 
 ### 2. draw.io での登録
 1. [draw.io](https://app.diagrams.net/) をブラウザで開くか、デスクトップ版を起動します。
