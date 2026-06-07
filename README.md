@@ -69,21 +69,7 @@ draw.io (diagrams.net) の機能を拡張する便利なプラグインの詰め
 
 ---
 
-## 3. draw.io Click Through Transparent Plugin (`click-through-transparent.js`)
-
-![draw.io Click Through Transparent Plugin のスクリーンショット](docs/click-through-transparent-screenshot.png)
-
-通常クリック時、透明な図形をスルーして背面の図形を選択します。
-
-### 概要
-draw.io では、手前にある図形がクリックの対象になりやすく、背面の図形が選択しづらい問題があります。
-このプラグインを導入すると、通常クリック時に以下の挙動になります。
-- **透過選択**: 手前の図形の背面にある図形の方が適切な場合、背面の図形が優先して選択されます。
-- **グループ内の子要素選択**: グループ・コンテナをクリックした場合、ポインタ直下の子要素が直接選択されます。
-
----
-
-## 4. draw.io Handle Scaler Plugin (`handle-scaler.js`)
+## 3. draw.io Handle Scaler Plugin (`handle-scaler.js`)
 
 頂点（選択時のサイズ変更・回転ハンドル）や、接続ポイント（コネクタ接続用の点）の表示サイズおよび判定サイズを大きくして、高解像度ディスプレイやマウス操作での操作性を向上させるプラグインです。右側がオリジナルの状態で、左側がプラグインを有効にした状態です。
 
@@ -118,7 +104,7 @@ draw.io のデフォルトの操作ハンドルや接続ポイントはサイズ
 各プラグインを適用するには以下の手順を行います。
 
 ### 1. プラグインファイルの配置
-本リポジトリ内のプラグインファイル（[props-changer.js](props-changer.js), [hierarchy-viewer.js](hierarchy-viewer.js), [click-through-transparent.js](click-through-transparent.js) または [handle-scaler.js](handle-scaler.js)）をローカルの任意の場所に保存するか、Web サーバー等にホストします。
+本リポジトリ内のプラグインファイル（[props-changer.js](props-changer.js), [hierarchy-viewer.js](hierarchy-viewer.js) または [handle-scaler.js](handle-scaler.js)）をローカルの任意の場所に保存するか、Web サーバー等にホストします。
 
 ### 2. draw.io での登録
 1. [draw.io](https://app.diagrams.net/) をブラウザで開くか、デスクトップ版を起動します。
