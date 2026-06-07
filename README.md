@@ -11,13 +11,13 @@ draw.io (diagrams.net) の機能を拡張する便利なプラグインの詰め
 ![draw.io Props Changer Plugin のスクリーンショット](docs/props-changer-screenshot.png)
 
 ### 概要
-通常、draw.io で図形のスタイル（「スケッチ」「自動サイズ調整」「矢印を許可」など）を変更するには、右側のフォーマットパネルから複数の操作を行う必要があります。
-このプラグインを導入すると、図形を右クリックした際のコンテキストメニューから、指定したプロパティの ON/OFF を 1 クリックで切り替えられるようになります。
+通常、draw.io で図形のスタイル（「連動してサイズを拡張」「テキストに併せてサイズを調整」「矢印を出さない」など）を変更するには、右側のフォーマットパネルから複数の操作を行う必要があります。
+このプラグインを導入すると、図形を右クリックした際のコンテキストメニュー**最上部**から、指定したプロパティの ON/OFF を 1 クリックで切り替えられるようになります。
 
 ### 使い方
 1. 編集する図形（頂点）を選択します。
 2. 選択した図形の上で右クリックします。
-3. コンテキストメニュー内の **「簡易プロパティ編集」** を選択します。
+3. コンテキストメニュー内の **「プロパティ」** を選択します。
 4. 変更したいプロパティをクリックして ON/OFF を切り替えます。
    - 現在 ON の項目にはチェックマーク（✔）が表示されます。
 
@@ -32,15 +32,14 @@ draw.io (diagrams.net) の機能を拡張する便利なプラグインの詰め
 
 | プロパティ名 | キー (`key`) | デフォルト値 (未設定時) |
 | :--- | :--- | :--- |
-| 図のサイズを拡張 | `expand` | ON |
-| 自動サイズ調整 | `autosize` | OFF (`defaultOff: true`) |
-| リサイズを禁止 | `resizable` | OFF (`defaultOff: true`) |
-| 位置を固定 | `movable` | OFF (`defaultOff: true`) |
-| スケッチ | `sketch` | OFF (`defaultOff: true`) |
+| 連動してサイズを拡張する | `expand` | ON |
+| テキストに併せてサイズを調整する | `autosize` | OFF (`defaultOff: true`) |
+| リサイズを禁止する | `resizable` | OFF (`defaultOff: true`) |
+| 位置を固定する | `movable` | OFF (`defaultOff: true`) |
 | ラベルを隠す | `noLabel` | OFF (`defaultOff: true`) |
-| 矢印を許可 | `allowArrows` | ON |
-| 接続可能 | `connectable` | ON |
 | ポイントにスナップ | `snapToPoint` | ON |
+| 矢印を出さない | `allowArrows` | OFF (`defaultOff: true`) |
+| 接続できなくする | `connectable` | OFF (`defaultOff: true`) |
 
 ---
 
