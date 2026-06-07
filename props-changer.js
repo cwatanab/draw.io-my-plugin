@@ -76,6 +76,15 @@
                     { value: '1', label: 'ON' },
                     { value: '0', label: 'OFF' }
                 ]
+            },
+            {
+                key: 'noLabel',
+                label: 'ラベルを隠す',
+                defaultOff: true,
+                values: [
+                    { value: '1', label: 'ON' },
+                    { value: '0', label: 'OFF' }
+                ]
             }
         ]
     };
