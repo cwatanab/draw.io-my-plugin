@@ -144,39 +144,39 @@
         var originalCreatePopupMenu = menus.createPopupMenu;
 
         menus.createPopupMenu = function(menu, cell, evt) {
-            originalCreatePopupMenu.call(menus, menu, cell, evt);
+            if (cell != null && graph.model.isVertex(cell)) {
+                var parentItem = menu.addItem(CONFIG.menuLabel, null, null);
 
-            if (cell == null || !graph.model.isVertex(cell)) return;
+                CONFIG.properties.forEach(function(prop) {
+                    if (prop.values.length === 2) {
+                        var cur = getCurrentVal(graph, cell, prop.key);
+                        var checked;
+                        if (cur == null) {
+                            checked = !prop.defaultOff;
+                        } else {
+                            checked = (cur !== prop.values[1].value);
+                        }
+                        var nextVal = checked ? prop.values[1].value : prop.values[0].value;
+                        var curLabel = checked ? prop.values[0].label : prop.values[1].label;
+                        var label = (checked ? '\u2714 ' : '\u3000 ') + prop.label + ' [' + curLabel + ']';
 
-            menu.addSeparator();
-
-            var parentItem = menu.addItem(CONFIG.menuLabel, null, null);
-
-            CONFIG.properties.forEach(function(prop) {
-                if (prop.values.length === 2) {
-                    var cur = getCurrentVal(graph, cell, prop.key);
-                    var checked;
-                    if (cur == null) {
-                        checked = !prop.defaultOff;
+                        menu.addItem(label, null, function() {
+                            setProp(graph, prop.key, nextVal);
+                        }, parentItem);
                     } else {
-                        checked = (cur !== prop.values[1].value);
+                        var propItem = menu.addItem(prop.label, null, null, parentItem);
+                        prop.values.forEach(function(val) {
+                            menu.addItem(val.label, null, function() {
+                                setProp(graph, prop.key, val.value);
+                            }, propItem);
+                        });
                     }
-                    var nextVal = checked ? prop.values[1].value : prop.values[0].value;
-                    var curLabel = checked ? prop.values[0].label : prop.values[1].label;
-                    var label = (checked ? '\u2714 ' : '\u3000 ') + prop.label + ' [' + curLabel + ']';
+                });
 
-                    menu.addItem(label, null, function() {
-                        setProp(graph, prop.key, nextVal);
-                    }, parentItem);
-                } else {
-                    var propItem = menu.addItem(prop.label, null, null, parentItem);
-                    prop.values.forEach(function(val) {
-                        menu.addItem(val.label, null, function() {
-                            setProp(graph, prop.key, val.value);
-                        }, propItem);
-                    });
-                }
-            });
+                menu.addSeparator();
+            }
+
+            originalCreatePopupMenu.call(menus, menu, cell, evt);
         };
 
         log('loaded (' + CONFIG.properties.length + ' properties)');
