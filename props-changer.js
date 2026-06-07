@@ -97,7 +97,7 @@
             },
             {
                 key: 'movable',
-                label: '移動を禁止',
+                label: '位置を固定',
                 defaultOff: true,
                 values: [
                     { value: '1', label: '許可' },
