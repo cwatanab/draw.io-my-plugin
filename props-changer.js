@@ -31,8 +31,8 @@
                 key: 'expand',
                 label: '連動してサイズを拡張する',
                 values: [
-                    { value: '1', label: 'ON' },
-                    { value: '0', label: 'OFF' }
+                    { value: '1' },
+                    { value: '0' }
                 ]
             },
             {
@@ -40,8 +40,8 @@
                 label: 'テキストに併せてサイズを調整する',
                 defaultOff: true,
                 values: [
-                    { value: '1', label: 'ON' },
-                    { value: '0', label: 'OFF' }
+                    { value: '1' },
+                    { value: '0' }
                 ]
             },
             {
@@ -49,8 +49,8 @@
                 label: 'リサイズを禁止する',
                 defaultOff: true,
                 values: [
-                    { value: '1', label: '許可' },
-                    { value: '0', label: '禁止' }
+                    { value: '1' },
+                    { value: '0' }
                 ]
             },
             {
@@ -58,8 +58,8 @@
                 label: '位置を固定する',
                 defaultOff: true,
                 values: [
-                    { value: '1', label: '許可' },
-                    { value: '0', label: '禁止' }
+                    { value: '1' },
+                    { value: '0' }
                 ]
             },
             {
@@ -67,16 +67,16 @@
                 label: 'ラベルを隠す',
                 defaultOff: true,
                 values: [
-                    { value: '1', label: 'ON' },
-                    { value: '0', label: 'OFF' }
+                    { value: '1' },
+                    { value: '0' }
                 ]
             },
             {
                 key: 'snapToPoint',
                 label: 'ポイントにスナップ',
                 values: [
-                    { value: '1', label: 'ON' },
-                    { value: '0', label: 'OFF' }
+                    { value: '1' },
+                    { value: '0' }
                 ]
             },
             {
@@ -84,8 +84,8 @@
                 label: '矢印を出さない',
                 defaultOff: true,
                 values: [
-                    { value: '0', label: 'ON' },
-                    { value: '1', label: 'OFF' }
+                    { value: '0' },
+                    { value: '1' }
                 ]
             },
             {
@@ -93,8 +93,8 @@
                 label: '接続できなくする',
                 defaultOff: true,
                 values: [
-                    { value: '0', label: 'ON' },
-                    { value: '1', label: 'OFF' }
+                    { value: '0' },
+                    { value: '1' }
                 ]
             }
         ]
