@@ -39,6 +39,7 @@ draw.io (diagrams.net) の機能を拡張する便利なプラグインの詰め
 | 自動サイズ調整 | `autosize` | OFF (`defaultOff: true`) |
 | ポイントにスナップ | `snapToPoint` | ON |
 | ラベルを隠す | `noLabel` | OFF (`defaultOff: true`) |
+| リサイズを禁止 | `resizable` | OFF (`defaultOff: true`) |
 
 ---
 
