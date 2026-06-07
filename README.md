@@ -8,6 +8,8 @@ draw.io (diagrams.net) の機能を拡張する便利なプラグインの詰め
 
 図形のプロパティ切替とスタイルの保存・適用を、右クリックメニューから行えるプラグインです。
 
+![draw.io Quick Styler Plugin のスクリーンショット](docs/quick-styler-screenshot.png)
+
 ### 概要
 
 2 つのメニューを提供します。

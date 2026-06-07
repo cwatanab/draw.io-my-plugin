@@ -181,20 +181,40 @@
      * @param {Array<mxCell>} cells
      * @param {Object} styleObj
      */
+    var keysToRemove = ['glass', 'aspect', 'container'];
+
     function applyStyleValues(graph, cells, styleObj) {
         graph.getModel().beginUpdate();
         try {
             var keys = Object.keys(styleObj);
             for (var i = 0; i < keys.length; i++) {
                 var k = keys[i];
-                if (k === 'glass' && styleObj[k] === '0') {
+                if (keysToRemove.indexOf(k) >= 0 && styleObj[k] === '0') {
                     cells.forEach(function(c) {
-                        var s = mxUtils.setStyle(graph.model.getStyle(c), 'glass', null);
+                        var s = mxUtils.setStyle(graph.model.getStyle(c), k, null);
                         graph.model.setStyle(c, s);
                     });
                 } else {
                     graph.setCellStyles(k, styleObj[k], cells);
                 }
+            }
+        } finally {
+            graph.getModel().endUpdate();
+        }
+        graph.refresh();
+    }
+
+    /**
+     * @param {mxGraph} graph
+     * @param {Array<mxCell>} cells
+     * @param {string} key
+     */
+    function removeStyleKey(graph, cells, key) {
+        graph.getModel().beginUpdate();
+        try {
+            for (var i = 0; i < cells.length; i++) {
+                var style = mxUtils.setStyle(graph.model.getStyle(cells[i]), key, null);
+                graph.model.setStyle(cells[i], style);
             }
         } finally {
             graph.getModel().endUpdate();
@@ -291,30 +311,12 @@
         }
 
         if (key === 'aspect' && value === '0') {
-            graph.getModel().beginUpdate();
-            try {
-                for (var i = 0; i < cells.length; i++) {
-                    var aspectStyle = mxUtils.setStyle(graph.model.getStyle(cells[i]), 'aspect', null);
-                    graph.model.setStyle(cells[i], aspectStyle);
-                }
-            } finally {
-                graph.getModel().endUpdate();
-            }
-            graph.refresh();
+            removeStyleKey(graph, cells, 'aspect');
             return;
         }
 
         if (key === 'container' && value === '0') {
-            graph.getModel().beginUpdate();
-            try {
-                for (var i = 0; i < cells.length; i++) {
-                    var containerStyle = mxUtils.setStyle(graph.model.getStyle(cells[i]), 'container', null);
-                    graph.model.setStyle(cells[i], containerStyle);
-                }
-            } finally {
-                graph.getModel().endUpdate();
-            }
-            graph.refresh();
+            removeStyleKey(graph, cells, 'container');
             return;
         }
 
@@ -394,13 +396,8 @@
             });
         }
 
-        var savedStyles = getSavedStyles();
-        savedStyles.forEach(function(item) {
-            var opt = document.createElement('option');
-            opt.value = item.name;
-            datalist.appendChild(opt);
-        });
         dialog.appendChild(datalist);
+        refreshDatalist();
         input.setAttribute('list', datalistId);
         input.addEventListener('keydown', function(e) {
             if (e.key === 'Enter') save();
