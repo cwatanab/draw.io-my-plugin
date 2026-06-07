@@ -82,12 +82,40 @@ draw.io では、塗りつぶしがないオブジェクトであっても、そ
 
 ---
 
+## 4. draw.io Handle Scaler Plugin (`handle-scaler.js`)
+
+頂点（選択時のサイズ変更・回転ハンドル）や、接続ポイント（コネクタ接続用の点）の表示サイズおよび判定サイズを大きくして、高解像度ディスプレイやマウス操作での操作性を向上させるプラグインです。
+
+### 概要
+draw.io のデフォルトの操作ハンドルや接続ポイントはサイズが小さく（通常 5〜8 ピクセル）、マウス操作での狙い撃ちや、高解像度（4K等）の環境においてクリックしづらい場合があります。
+このプラグインを導入すると、以下のサイズ変更と判定の拡張を行います。
+- **選択ハンドルの拡大**: 図形選択時に表示されるサイズ変更（リサイズ）用ハンドルおよび回転ハンドルのサイズを大きくします。**ズーム倍率に合わせてリアルタイムに拡大縮小する動的スケール機能付きです（ズーム 100% から 800% にかけて緩やかに最大サイズへと変化します）。**
+- **接続ポイントの拡大**: コネクタを接続する際に表示される接続ポイント（点/画像）を拡大表示します。**ズーム倍率に合わせてこちらも動的にスケールします（同様にズーム 100% から 800% にかけて緩やかに変化します）。**
+- **接続のホバー判定拡張**: 接続ポイントの判定範囲（許容誤差）を拡大し、少し離れた位置からのドラッグでも接続が吸着しやすくなるよう調整します。**判定範囲もズーム倍率に応じて動的に伸縮します。**
+
+### 設定とカスタマイズ
+本プラグインの設定は [handle-scaler.js](file:///D:/Develop/draw.io-my-plugin/handle-scaler.js) の先頭にある `CONFIG` オブジェクトに記述されています。
+
+必要に応じて数値を書き換えてサイズを調整してください。
+
+| 設定項目名 | キー (`key`) | デフォルト値 | 説明 |
+| :--- | :--- | :--- | :--- |
+| リサイズハンドル | `handleSize` | 10 | 選択した図形の角に表示されるサイズ変更ハンドルの大きさ |
+| ラベルハンドル | `labelHandleSize` | 6 | テキストラベルの移動用ハンドルの大きさ |
+| 接続トリガーハンドル | `connectHandleSize` | 10 | 図形選択時に周囲に表示される接続矢印ハンドルの大きさ |
+| 接続ポイント画像 | `pointImageSize` | 6 | 図形ホバー時に表示される接続ポイントの大きさ |
+| 丸型ハンドル | `roundHandles` | `false` | ハンドルを丸型（円形）にするかどうか |
+| ハンドルサイズ上限 | `maxHandleSize` | 24 | ズーム時のハンドルサイズの上限（ピクセル） |
+| 接続ポイントサイズ上限 | `maxPointSize` | 12 | ズーム時の接続ポイントサイズの上限（ピクセル） |
+
+---
+
 ## インストール手順（共通）
 
 各プラグインを適用するには以下の手順を行います。
 
 ### 1. プラグインファイルの配置
-本リポジトリ内のプラグインファイル（[props-changer.js](file:///D:/Develop/draw.io-my-plugin/props-changer.js), [hierarchy-viewer.js](file:///D:/Develop/draw.io-my-plugin/hierarchy-viewer.js) または [click-through-transparent.js](file:///D:/Develop/draw.io-my-plugin/click-through-transparent.js)）をローカルの任意の場所に保存するか、Web サーバー等にホストします。
+本リポジトリ内のプラグインファイル（[props-changer.js](file:///D:/Develop/draw.io-my-plugin/props-changer.js), [hierarchy-viewer.js](file:///D:/Develop/draw.io-my-plugin/hierarchy-viewer.js), [click-through-transparent.js](file:///D:/Develop/draw.io-my-plugin/click-through-transparent.js) または [handle-scaler.js](file:///D:/Develop/draw.io-my-plugin/handle-scaler.js)）をローカルの任意の場所に保存するか、Web サーバー等にホストします。
 
 ### 2. draw.io での登録
 1. [draw.io](https://app.diagrams.net/) をブラウザで開くか、デスクトップ版を起動します。
