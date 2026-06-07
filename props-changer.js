@@ -36,8 +36,44 @@
                 ]
             },
             {
+                key: 'autosize',
+                label: '自動サイズ調整',
+                defaultOff: true,
+                values: [
+                    { value: '1', label: 'ON' },
+                    { value: '0', label: 'OFF' }
+                ]
+            },
+            {
+                key: 'resizable',
+                label: 'リサイズを禁止',
+                defaultOff: true,
+                values: [
+                    { value: '1', label: '許可' },
+                    { value: '0', label: '禁止' }
+                ]
+            },
+            {
+                key: 'movable',
+                label: '位置を固定',
+                defaultOff: true,
+                values: [
+                    { value: '1', label: '許可' },
+                    { value: '0', label: '禁止' }
+                ]
+            },
+            {
                 key: 'sketch',
                 label: 'スケッチ',
+                defaultOff: true,
+                values: [
+                    { value: '1', label: 'ON' },
+                    { value: '0', label: 'OFF' }
+                ]
+            },
+            {
+                key: 'noLabel',
+                label: 'ラベルを隠す',
                 defaultOff: true,
                 values: [
                     { value: '1', label: 'ON' },
@@ -61,47 +97,11 @@
                 ]
             },
             {
-                key: 'autosize',
-                label: '自動サイズ調整',
-                defaultOff: true,
-                values: [
-                    { value: '1', label: 'ON' },
-                    { value: '0', label: 'OFF' }
-                ]
-            },
-            {
                 key: 'snapToPoint',
                 label: 'ポイントにスナップ',
                 values: [
                     { value: '1', label: 'ON' },
                     { value: '0', label: 'OFF' }
-                ]
-            },
-            {
-                key: 'noLabel',
-                label: 'ラベルを隠す',
-                defaultOff: true,
-                values: [
-                    { value: '1', label: 'ON' },
-                    { value: '0', label: 'OFF' }
-                ]
-            },
-            {
-                key: 'resizable',
-                label: 'リサイズを禁止',
-                defaultOff: true,
-                values: [
-                    { value: '1', label: '許可' },
-                    { value: '0', label: '禁止' }
-                ]
-            },
-            {
-                key: 'movable',
-                label: '位置を固定',
-                defaultOff: true,
-                values: [
-                    { value: '1', label: '許可' },
-                    { value: '0', label: '禁止' }
                 ]
             }
         ]

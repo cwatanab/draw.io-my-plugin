@@ -33,14 +33,14 @@ draw.io (diagrams.net) の機能を拡張する便利なプラグインの詰め
 | プロパティ名 | キー (`key`) | デフォルト値 (未設定時) |
 | :--- | :--- | :--- |
 | 図のサイズを拡張 | `expand` | ON |
-| スケッチ | `sketch` | OFF (`defaultOff: true`) |
-| 矢印を許可 | `allowArrows` | ON |
-| 接続可能 | `connectable` | ON |
 | 自動サイズ調整 | `autosize` | OFF (`defaultOff: true`) |
-| ポイントにスナップ | `snapToPoint` | ON |
-| ラベルを隠す | `noLabel` | OFF (`defaultOff: true`) |
 | リサイズを禁止 | `resizable` | OFF (`defaultOff: true`) |
 | 位置を固定 | `movable` | OFF (`defaultOff: true`) |
+| スケッチ | `sketch` | OFF (`defaultOff: true`) |
+| ラベルを隠す | `noLabel` | OFF (`defaultOff: true`) |
+| 矢印を許可 | `allowArrows` | ON |
+| 接続可能 | `connectable` | ON |
+| ポイントにスナップ | `snapToPoint` | ON |
 
 ---
 
