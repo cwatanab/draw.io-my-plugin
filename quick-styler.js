@@ -143,7 +143,15 @@
      * @returns {Object}
      */
     function getStyleValues(graph, cell) {
-        var resolved = graph.getCellStyle(cell);
+        var raw = cell.getStyle();
+        var parsed = {};
+        raw.split(';').forEach(function(pair) {
+            var idx = pair.indexOf('=');
+            if (idx > 0) {
+                parsed[pair.substring(0, idx)] = pair.substring(idx + 1);
+            }
+        });
+
         var keys = [
             // Style tab
             'fillColor', 'strokeColor', 'gradientColor', 'glass',
@@ -161,8 +169,8 @@
         var result = {};
         for (var i = 0; i < keys.length; i++) {
             var k = keys[i];
-            if (resolved[k] !== undefined && resolved[k] !== null) {
-                result[k] = resolved[k];
+            if (parsed[k] !== undefined) {
+                result[k] = parsed[k];
             }
         }
         return result;
