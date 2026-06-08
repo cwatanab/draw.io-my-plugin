@@ -40,15 +40,6 @@
             swapEnabled = localStorage.getItem(STORAGE_KEY) === 'true';
         } catch (e) { warn('Failed to read swap state: ' + e); }
 
-        /**
-         * トグル状態を localStorage に保存する
-         */
-        function saveState() {
-            try {
-                localStorage.setItem(STORAGE_KEY, String(swapEnabled));
-            } catch (e) { warn('Failed to save swap state: ' + e); }
-        }
-
         var graph = ui.editor.graph;
         var origIsTransparentClickEvent = graph.isTransparentClickEvent;
 
@@ -68,13 +59,13 @@
 
         var action = ui.actions.addAction('swapClickAlt', function() {
             swapEnabled = !swapEnabled;
-            saveState();
+            try {
+                localStorage.setItem(STORAGE_KEY, String(swapEnabled));
+            } catch (e) { warn('Failed to save swap state: ' + e); }
         });
 
         action.setToggleAction(true);
-        action.setSelectedCallback(function() {
-            return swapEnabled;
-        });
+        action.setSelectedCallback(function() { return swapEnabled; });
 
         if (ui.menus) {
             var menu = ui.menus.get('extras') || ui.menus.get('view');

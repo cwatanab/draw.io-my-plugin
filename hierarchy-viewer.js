@@ -38,18 +38,8 @@
         try {
             // Create window DOM container
             var container = document.createElement('div');
-            container.style.width = '100%';
-            container.style.height = '100%';
-            container.style.overflow = 'auto';
-            container.style.padding = '8px';
-            container.style.boxSizing = 'border-box';
-            container.style.fontFamily = 'Helvetica Neue, Helvetica, Arial, sans-serif';
-            container.style.fontSize = '12px';
-            container.style.backgroundColor = '#ffffff';
-            container.style.userSelect = 'none';
-            // Enable keyboard focus for F2 key listener
+            container.style.cssText = 'width:100%;height:100%;overflow:auto;padding:8px;box-sizing:border-box;font-family:Helvetica Neue,Helvetica,Arial,sans-serif;font-size:12px;background-color:#fff;user-select:none;outline:none;';
             container.tabIndex = 0;
-            container.style.outline = 'none';
 
             // Add CSS styling including Drag and Drop visual indicators
             var style = document.createElement('style');
@@ -79,10 +69,7 @@
 
             var STORAGE_KEY = 'drawio-hierarchy-viewer-state';
 
-            var WINDOW_EL_CANDIDATES = [null, null, null]; // populated after wnd creation
-            WINDOW_EL_CANDIDATES[0] = wnd.div;
-            WINDOW_EL_CANDIDATES[1] = wnd.table;
-            WINDOW_EL_CANDIDATES[2] = wnd.contentDiv;
+            var WINDOW_EL_CANDIDATES = [wnd.div, wnd.table, wnd.contentDiv];
 
             function saveSettings() {
                 try {
@@ -198,18 +185,11 @@
              */
             function getDropPosition(e, itemEl, isLayer, targetCell) {
                 var rect = itemEl.getBoundingClientRect();
-                var relativeY = e.clientY - rect.top;
-                var height = rect.height;
-
-                if (isLayer) {
-                    return (relativeY < height * 0.5) ? 'before' : 'after';
-                }
-                if (relativeY < height * 0.3) return 'before';
-                if (relativeY > height * 0.7) return 'after';
-                // Middle zone: edges cannot have children
-                if (graph.model.isEdge(targetCell)) {
-                    return (relativeY < height * 0.5) ? 'before' : 'after';
-                }
+                var y = e.clientY - rect.top;
+                var pct = y / rect.height;
+                if (pct < 0.3) return 'before';
+                if (pct > 0.7) return 'after';
+                if (isLayer || graph.model.isEdge(targetCell)) return pct < 0.5 ? 'before' : 'after';
                 return 'inside';
             }
 
@@ -223,25 +203,20 @@
              */
             function setupRename(cell, dragHandle, labelSpan, rightContainer, prefix) {
                 return function startEditing() {
-                    dragHandle.setAttribute('draggable', 'false');
-                    dragHandle.style.opacity = '0.3';
-                    dragHandle.style.cursor = 'default';
+                    function setDragState(editing) {
+                        dragHandle.setAttribute('draggable', String(!editing));
+                        dragHandle.style.opacity = editing ? '0.3' : '1';
+                        dragHandle.style.cursor = editing ? 'default' : 'move';
+                        rightContainer.style.display = editing ? 'none' : 'flex';
+                    }
+                    setDragState(true);
 
                     var currentText = getRawCellLabel(cell);
 
                     var input = document.createElement('input');
                     input.type = 'text';
                     input.value = currentText;
-                    input.style.width = '100%';
-                    input.style.boxSizing = 'border-box';
-                    input.style.padding = '2px 4px';
-                    input.style.fontSize = '12px';
-                    input.style.border = '1px solid #3b82f6';
-                    input.style.borderRadius = '3px';
-                    input.style.outline = 'none';
-                    input.style.margin = '0 4px';
-
-                    rightContainer.style.display = 'none';
+                    input.style.cssText = 'width:100%;box-sizing:border-box;padding:2px 4px;font-size:12px;border:1px solid #3b82f6;border-radius:3px;outline:none;margin:0 4px;';
 
                     labelSpan.innerHTML = '';
                     labelSpan.innerText = prefix;
@@ -267,21 +242,15 @@
                             }
                         }
 
-                        dragHandle.setAttribute('draggable', 'true');
-                        dragHandle.style.opacity = '1';
-                        dragHandle.style.cursor = 'move';
-                        rightContainer.style.display = 'flex';
+                        setDragState(false);
                         refreshTree();
                         container.focus();
                     }
 
                     input.onblur = function() { finishEdit(true); };
                     input.onkeydown = function(evt) {
-                        if (evt.key === 'Enter') {
-                            finishEdit(true);
-                        } else if (evt.key === 'Escape') {
-                            finishEdit(false);
-                        }
+                        if (evt.key === 'Enter') finishEdit(true);
+                        else if (evt.key === 'Escape') finishEdit(false);
                     };
                 };
             }
@@ -327,26 +296,22 @@
 
                     var insertMode = getDropPosition(e, item, isLayer, cell);
                     var parent = (insertMode === 'inside') ? cell : cell.getParent();
-                    var index = 0;
+                    var index;
 
                     graph.getModel().beginUpdate();
                     try {
                         if (insertMode === 'inside') {
                             index = parent.getChildCount();
                         } else {
-                            var targetIndex = parent.children.indexOf(cell);
-                            var draggedIndex = parent.children.indexOf(draggedCell);
+                            var targetIndex = cell.getParent().children.indexOf(cell);
+                            var draggedIndex = draggedCell.getParent().children.indexOf(draggedCell);
 
                             if (draggedCell.getParent() === parent) {
-                                // Re-order within same parent (adjusting Z-index)
-                                if (insertMode === 'before') {
-                                    index = (draggedIndex > targetIndex) ? targetIndex + 1 : targetIndex;
-                                } else {
-                                    index = (draggedIndex < targetIndex) ? targetIndex - 1 : targetIndex;
-                                }
+                                index = (insertMode === 'before')
+                                    ? (draggedIndex > targetIndex ? targetIndex + 1 : targetIndex)
+                                    : (draggedIndex < targetIndex ? targetIndex - 1 : targetIndex);
                                 if (index < 0) index = 0;
                             } else {
-                                // Move to a different parent/layer
                                 index = (insertMode === 'before') ? targetIndex + 1 : targetIndex;
                             }
                         }
@@ -382,17 +347,19 @@
                 // Visibility Toggle
                 var visBtn = document.createElement('span');
                 visBtn.className = 'hierarchy-vis-btn';
-                var isVisible = graph.model.isVisible(cell);
-                visBtn.innerHTML = isVisible ? openEyeSvg : closedEyeSvg;
-                visBtn.style.opacity = isVisible ? '0.7' : '0.35';
-                visBtn.style.color = isVisible ? '#4b5563' : '#9ca3af';
-                visBtn.title = isVisible ? 'クリックして非表示にする' : 'クリックして表示する';
+                function updateVisBtn() {
+                    var v = graph.model.isVisible(cell);
+                    visBtn.innerHTML = v ? openEyeSvg : closedEyeSvg;
+                    visBtn.style.opacity = v ? '0.7' : '0.35';
+                    visBtn.style.color = v ? '#4b5563' : '#9ca3af';
+                    visBtn.title = v ? 'クリックして非表示にする' : 'クリックして表示する';
+                }
+                updateVisBtn();
                 visBtn.onclick = function(e) {
                     e.stopPropagation();
-                    var nextVis = !graph.model.isVisible(cell);
                     graph.getModel().beginUpdate();
                     try {
-                        graph.model.setVisible(cell, nextVis);
+                        graph.model.setVisible(cell, !graph.model.isVisible(cell));
                     } finally {
                         graph.getModel().endUpdate();
                     }
@@ -402,7 +369,7 @@
                 item.appendChild(visBtn);
 
                 // Icon prefix based on cell type
-                var prefix = '';
+                var prefix;
                 if (isLayer) {
                     prefix = '🗂️ ';
                     item.style.fontWeight = 'bold';
@@ -449,16 +416,12 @@
 
                 item.appendChild(rightContainer);
 
-                // Hover effect
+                var defaultBg = isLayer ? '#f9fafb' : 'transparent';
                 item.onmouseover = function() {
-                    if (graph.getSelectionCell() !== cell) {
-                        item.style.backgroundColor = '#f3f4f6';
-                    }
+                    if (graph.getSelectionCell() !== cell) item.style.backgroundColor = '#f3f4f6';
                 };
                 item.onmouseout = function() {
-                    if (graph.getSelectionCell() !== cell) {
-                        item.style.backgroundColor = isLayer ? '#f9fafb' : 'transparent';
-                    }
+                    if (graph.getSelectionCell() !== cell) item.style.backgroundColor = defaultBg;
                 };
 
                 // Click to select
@@ -517,13 +480,9 @@
              */
             function refreshTree() {
                 container.innerHTML = '';
-                
-                var model = graph.getModel();
-                var root = model.getRoot();
-                
+                var root = graph.getModel().getRoot();
                 if (root) {
-                    var treeDom = buildTreeDom(root, 0, false);
-                    container.appendChild(treeDom);
+                    container.appendChild(buildTreeDom(root, 0, false));
                 } else {
                     container.innerText = 'オブジェクトが見つかりません。';
                 }
@@ -541,19 +500,12 @@
                 }
             });
 
-            // Listen for graph changes to update the viewer
-            graph.getModel().addListener(mxEvent.CHANGE, function() {
-                if (wnd.isVisible()) {
-                    refreshTree();
-                }
-            });
+            function refreshIfVisible() {
+                if (wnd.isVisible()) refreshTree();
+            }
 
-            // Listen for selection changes to update highlighted elements in the tree
-            graph.getSelectionModel().addListener(mxEvent.UNDO, function() {
-                if (wnd.isVisible()) {
-                    refreshTree();
-                }
-            });
+            graph.getModel().addListener(mxEvent.CHANGE, refreshIfVisible);
+            graph.getSelectionModel().addListener(mxEvent.UNDO, refreshIfVisible);
 
             /**
              * Toggle window visibility.
@@ -572,9 +524,7 @@
             var action = ui.actions.addAction(actionName, toggleWindow);
             action.label = menuLabel;
             action.setToggleAction(true);
-            action.setSelectedCallback(function() {
-                return wnd.isVisible();
-            });
+            action.setSelectedCallback(function() { return wnd.isVisible(); });
 
             /**
              * Register menu item under Extras or View.

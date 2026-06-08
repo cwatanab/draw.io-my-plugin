@@ -210,8 +210,7 @@
         graph.getModel().beginUpdate();
         try {
             for (var i = 0; i < cells.length; i++) {
-                var style = mxUtils.setStyle(graph.model.getStyle(cells[i]), key, null);
-                graph.model.setStyle(cells[i], style);
+                graph.model.setStyle(cells[i], mxUtils.setStyle(graph.model.getStyle(cells[i]), key, null));
             }
         } finally {
             graph.getModel().endUpdate();
@@ -249,18 +248,15 @@
      */
     function saveStyle(name, styleObj) {
         var styles = getSavedStyles();
-        var existing = null;
         for (var i = 0; i < styles.length; i++) {
             if (styles[i].name === name) {
-                existing = i;
-                break;
+                styles[i].style = styleObj;
+                setSavedStyles(styles);
+                log('style saved: ' + name);
+                return;
             }
         }
-        if (existing !== null) {
-            styles[existing].style = styleObj;
-        } else {
-            styles.push({ name: name, style: styleObj });
-        }
+        styles.push({ name: name, style: styleObj });
         setSavedStyles(styles);
         log('style saved: ' + name);
     }
@@ -291,8 +287,7 @@
             try {
                 for (var i = 0; i < cells.length; i++) {
                     if (graph.model.isVertex(cells[i])) {
-                        var style = mxUtils.setStyle(graph.model.getStyle(cells[i]), 'points', points);
-                        graph.model.setStyle(cells[i], style);
+                        graph.model.setStyle(cells[i], mxUtils.setStyle(graph.model.getStyle(cells[i]), 'points', points));
                     }
                 }
             } finally {
@@ -331,6 +326,12 @@
         'none': null
     };
 
+    var CONSTRAINT_PRESETS_REV = {
+        '[[0.5,0],[1,0.5],[0.5,1],[0,0.5]]': 'all',
+        '[[0.5,0],[0.5,1]]': 'v',
+        '[[0,0.5],[1,0.5]]': 'h'
+    };
+
     /**
      * @param {mxGraph} graph
      * @param {mxCell} cell
@@ -339,11 +340,7 @@
     function getConstraintPreset(graph, cell) {
         var raw = getCurrentVal(graph, cell, 'points');
         if (!raw) return 'none';
-        var normalized = raw.replace(/\s/g, '');
-        for (var key in CONSTRAINT_PRESETS) {
-            if (CONSTRAINT_PRESETS[key] === normalized) return key;
-        }
-        return 'none';
+        return CONSTRAINT_PRESETS_REV[raw.replace(/\s/g, '')] || 'none';
     }
 
     /**
@@ -351,6 +348,19 @@
      * @param {mxCell} cell
      */
     function showStyleDialog(graph, cell) {
+        function save() {
+            var name = input.value.trim();
+            if (name) {
+                saveStyle(name, getStyleValues(graph, cell));
+                input.value = '';
+                refreshDatalist();
+            }
+        }
+
+        function close() {
+            document.body.removeChild(overlay);
+        }
+
         var overlay = document.createElement('div');
         overlay.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.3);z-index:10000;display:flex;align-items:center;justify-content:center;font-family:sans-serif;';
 
@@ -382,8 +392,7 @@
             while (datalist.firstChild) {
                 datalist.removeChild(datalist.firstChild);
             }
-            var styles = getSavedStyles();
-            styles.forEach(function(item) {
+            getSavedStyles().forEach(function(item) {
                 var opt = document.createElement('option');
                 opt.value = item.name;
                 datalist.appendChild(opt);
@@ -430,20 +439,6 @@
             if (e.key === 'Escape') close();
         });
 
-        function save() {
-            var name = input.value.trim();
-            if (name) {
-                var styleObj = getStyleValues(graph, cell);
-                saveStyle(name, styleObj);
-                input.value = '';
-                refreshDatalist();
-            }
-        }
-
-        function close() {
-            document.body.removeChild(overlay);
-        }
-
         document.body.appendChild(overlay);
         setTimeout(function() { input.focus(); }, 50);
     }
@@ -476,6 +471,14 @@
         var menus = ui.menus;
         var originalCreatePopupMenu = menus.createPopupMenu;
 
+        function addCheckableItem(menu, label, checked, action, parent) {
+            var item = menu.addItem(label, null, action, parent);
+            if (checked) {
+                menu.addCheckmark(item, Editor.checkmarkImage);
+            }
+            return item;
+        }
+
         menus.createPopupMenu = function(menu, cell, evt) {
             if (cell != null && graph.model.isVertex(cell)) {
 
@@ -490,30 +493,17 @@
                     menuGroup.properties.forEach(function(prop) {
                         if (prop.values.length === 2) {
                             var cur = getCurrentVal(graph, cell, prop.key);
-                            var checked;
-                            if (cur == null) {
-                                checked = !prop.defaultOff;
-                            } else {
-                                checked = (cur !== prop.values[1].value);
-                            }
-                            var nextVal = checked ? prop.values[1].value : prop.values[0].value;
-                            var item = menu.addItem(prop.label, null, function() {
-                                setProp(graph, prop.key, nextVal);
+                            var checked = (cur == null) ? !prop.defaultOff : (cur !== prop.values[1].value);
+                            addCheckableItem(menu, prop.label, checked, function() {
+                                setProp(graph, prop.key, checked ? prop.values[1].value : prop.values[0].value);
                             }, parentItem);
-                            if (checked) {
-                                menu.addCheckmark(item, Editor.checkmarkImage);
-                            }
                         } else {
                             var propItem = menu.addItem(prop.label, null, null, parentItem);
                             var currentPreset = (prop.key === 'constraintPoints') ? getConstraintPreset(graph, cell) : null;
                             prop.values.forEach(function(val) {
-                                var isActive = (val.value === currentPreset);
-                                var subItem = menu.addItem(val.label, null, function() {
+                                addCheckableItem(menu, val.label, val.value === currentPreset, function() {
                                     setProp(graph, prop.key, val.value);
                                 }, propItem);
-                                if (isActive) {
-                                    menu.addCheckmark(subItem, Editor.checkmarkImage);
-                                }
                             });
                         }
                     });
@@ -525,12 +515,9 @@
             originalCreatePopupMenu.call(menus, menu, cell, evt);
         };
 
-        var totalProps = 0;
-        CONFIG.menus.forEach(function(m) {
-            if (m.properties) {
-                totalProps += m.properties.length;
-            }
-        });
+        var totalProps = CONFIG.menus.reduce(function(acc, m) {
+            return acc + (m.properties ? m.properties.length : 0);
+        }, 0);
         log('loaded (' + totalProps + ' properties)');
     });
 })();
