@@ -76,7 +76,7 @@
             wnd.setResizable(true);
             wnd.setScrollable(false); // Scroll handled by container div
 
-            var STORAGE_KEY = 'drawio-hv-state';
+            var STORAGE_KEY = 'drawio-hierarchy-viewer-state';
 
             function saveSettings() {
                 try {
@@ -100,7 +100,7 @@
                         h: el.offsetHeight
                     };
                     localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-                } catch (e) {}
+                } catch (e) { warn('Failed to save window state: ' + e); }
             }
 
             function restoreSettings() {
@@ -118,6 +118,7 @@
                     }
                     return true;
                 } catch (e) {
+                    warn('Failed to restore window state: ' + e);
                     return false;
                 }
             }
@@ -125,7 +126,7 @@
             try {
                 wnd.addListener('move', saveSettings);
                 wnd.addListener('resize', saveSettings);
-            } catch (e) {}
+            } catch (e) { warn('Failed to register window listeners: ' + e); }
 
             // SVG icon definitions (Lucide icons style)
             var openEyeSvg = '<svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: middle;"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>';
@@ -266,7 +267,7 @@
                             try {
                                 graph.cellLabelChanged(cell, newValue);
                             } catch (err) {
-                                console.error('Failed to change label:', err);
+                                warn('Failed to change label: ' + err);
                             } finally {
                                 graph.getModel().endUpdate();
                             }
@@ -357,7 +358,7 @@
                         }
                         graph.addCells([draggedCell], parent, index);
                     } catch (err) {
-                        console.error('Failed to move cell:', err);
+                        warn('Failed to move cell: ' + err);
                     } finally {
                         graph.getModel().endUpdate();
                     }

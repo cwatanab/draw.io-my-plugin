@@ -5,7 +5,7 @@
     'use strict';
 
     var pluginName = 'Quick Styler';
-    var styleStorageKey = pluginName + '-styles';
+    var STORAGE_KEY = 'drawio-quick-styler-styles';
 
     /**
      * @param {string} message
@@ -23,6 +23,11 @@
         if (typeof console !== 'undefined' && console.warn) {
             console.warn(pluginName + ': ' + message);
         }
+    }
+
+    if (typeof Draw === 'undefined' || Draw.loadPlugin == null) {
+        warn('Draw.loadPlugin is not available.');
+        return;
     }
 
     var CONFIG = {
@@ -176,13 +181,13 @@
         return result;
     }
 
+    var keysToRemove = ['glass', 'aspect', 'container'];
+
     /**
      * @param {mxGraph} graph
      * @param {Array<mxCell>} cells
      * @param {Object} styleObj
      */
-    var keysToRemove = ['glass', 'aspect', 'container'];
-
     function applyStyleValues(graph, cells, styleObj) {
         graph.getModel().beginUpdate();
         try {
@@ -227,9 +232,10 @@
      */
     function getSavedStyles() {
         try {
-            var raw = localStorage.getItem(styleStorageKey);
+            var raw = localStorage.getItem(STORAGE_KEY);
             return raw ? JSON.parse(raw) : [];
         } catch (e) {
+            warn('Failed to read saved styles: ' + e);
             return [];
         }
     }
@@ -239,9 +245,9 @@
      */
     function setSavedStyles(styles) {
         try {
-            localStorage.setItem(styleStorageKey, JSON.stringify(styles));
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(styles));
         } catch (e) {
-            warn('Failed to save styles to localStorage');
+            warn('Failed to save styles to localStorage: ' + e);
         }
     }
 
@@ -478,11 +484,6 @@
                 applyStyleValues(graph, graph.getSelectionCells(), item.style);
             }, styleParent);
         });
-    }
-
-    if (typeof Draw === 'undefined' || Draw.loadPlugin == null) {
-        warn('Draw.loadPlugin is not available.');
-        return;
     }
 
     Draw.loadPlugin(function(ui) {
