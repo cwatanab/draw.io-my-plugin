@@ -76,6 +76,57 @@
             wnd.setResizable(true);
             wnd.setScrollable(false); // Scroll handled by container div
 
+            var STORAGE_KEY = 'drawio-hv-state';
+
+            function saveSettings() {
+                try {
+                    var el;
+                    var candidates = [wnd.div, wnd.table, wnd.contentDiv];
+                    for (var i = 0; i < candidates.length; i++) {
+                        var c = candidates[i];
+                        if (c && c.style && !isNaN(parseInt(c.style.left)) && !isNaN(parseInt(c.style.top))) {
+                            el = c;
+                            break;
+                        }
+                    }
+                    if (!el) return;
+                    var x = parseInt(el.style.left);
+                    var y = parseInt(el.style.top);
+                    var state = {
+                        visible: wnd.isVisible(),
+                        x: x,
+                        y: y,
+                        w: el.offsetWidth,
+                        h: el.offsetHeight
+                    };
+                    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+                } catch (e) {}
+            }
+
+            function restoreSettings() {
+                try {
+                    var json = localStorage.getItem(STORAGE_KEY);
+                    if (!json) return false;
+                    var state = JSON.parse(json);
+                    if (!state.visible) return false;
+                    wnd.setVisible(true);
+                    if (state.x != null && state.y != null) {
+                        wnd.setLocation(state.x, state.y);
+                    }
+                    if (state.w && state.h) {
+                        wnd.setSize(state.w, state.h);
+                    }
+                    return true;
+                } catch (e) {
+                    return false;
+                }
+            }
+
+            try {
+                wnd.addListener('move', saveSettings);
+                wnd.addListener('resize', saveSettings);
+            } catch (e) {}
+
             // SVG icon definitions (Lucide icons style)
             var openEyeSvg = '<svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: middle;"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>';
             var closedEyeSvg = '<svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: middle;"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path><line x1="1" y1="1" x2="23" y2="23"></line></svg>';
@@ -514,6 +565,7 @@
              */
             function toggleWindow() {
                 wnd.setVisible(!wnd.isVisible());
+                saveSettings();
                 if (wnd.isVisible()) {
                     refreshTree();
                     container.focus(); // Focus container when opening window
@@ -524,6 +576,10 @@
             var actionName = 'toggleHierarchyViewer';
             var action = ui.actions.addAction(actionName, toggleWindow);
             action.label = menuLabel;
+            action.setToggleAction(true);
+            action.setSelectedCallback(function() {
+                return wnd.isVisible();
+            });
 
             /**
              * Register menu item under Extras or View.
@@ -534,11 +590,7 @@
                     var oldFunct = menu.funct;
                     menu.funct = function(m, parent) {
                         oldFunct.apply(this, arguments);
-                        
-                        m.addSeparator(parent);
-                        m.addItem(menuLabel, null, function() {
-                            toggleWindow();
-                        }, parent);
+                        ui.menus.addMenuItems(m, ['-', actionName], parent);
                     };
                     log('registered in menu successfully');
                 } else {
@@ -551,8 +603,12 @@
                 registerMenu();
             }
 
-            // Initialize window as invisible
-            wnd.setVisible(false);
+            if (!restoreSettings()) {
+                wnd.setVisible(false);
+            } else {
+                refreshTree();
+                container.focus();
+            }
             
             log('loaded.');
 
