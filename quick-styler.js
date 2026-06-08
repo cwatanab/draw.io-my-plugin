@@ -142,42 +142,34 @@
         ]
     };
 
+    var STYLE_KEYS = Object.create(null);
+    ['fillColor', 'strokeColor', 'gradientColor', 'glass',
+     'strokeWidth', 'dashed', 'dashPattern', 'rounded',
+     'opacity', 'shadow', 'shape', 'perimeter',
+     'fontColor', 'fontSize', 'fontFamily', 'fontStyle',
+     'align', 'verticalAlign', 'labelPosition',
+     'spacingLeft', 'spacingRight', 'spacingTop', 'spacingBottom',
+     'whiteSpace', 'overflow',
+     'movable', 'resizable', 'rotatable', 'deletable', 'editable',
+     'container', 'aspect', 'autosize'
+    ].forEach(function(k) { STYLE_KEYS[k] = true; });
+
     /**
      * @param {mxGraph} graph
      * @param {mxCell} cell
      * @returns {Object}
      */
     function getStyleValues(graph, cell) {
-        var raw = cell.getStyle();
-        var parsed = {};
-        raw.split(';').forEach(function(pair) {
+        var result = {};
+        cell.getStyle().split(';').forEach(function(pair) {
             var idx = pair.indexOf('=');
             if (idx > 0) {
-                parsed[pair.substring(0, idx)] = pair.substring(idx + 1);
+                var k = pair.substring(0, idx);
+                if (STYLE_KEYS[k]) {
+                    result[k] = pair.substring(idx + 1);
+                }
             }
         });
-
-        var keys = [
-            // Style tab
-            'fillColor', 'strokeColor', 'gradientColor', 'glass',
-            'strokeWidth', 'dashed', 'dashPattern', 'rounded',
-            'opacity', 'shadow', 'shape', 'perimeter',
-            // Text tab
-            'fontColor', 'fontSize', 'fontFamily', 'fontStyle',
-            'align', 'verticalAlign', 'labelPosition',
-            'spacingLeft', 'spacingRight', 'spacingTop', 'spacingBottom',
-            'whiteSpace', 'overflow',
-            // Arrange tab
-            'movable', 'resizable', 'rotatable', 'deletable', 'editable',
-            'container', 'aspect', 'autosize'
-        ];
-        var result = {};
-        for (var i = 0; i < keys.length; i++) {
-            var k = keys[i];
-            if (parsed[k] !== undefined) {
-                result[k] = parsed[k];
-            }
-        }
         return result;
     }
 
@@ -294,13 +286,7 @@
         if (cells.length === 0) return;
 
         if (key === 'constraintPoints') {
-            var points;
-            switch (value) {
-                case 'all': points = '[[0.5,0],[1,0.5],[0.5,1],[0,0.5]]'; break;
-                case 'v': points = '[[0.5,0],[0.5,1]]'; break;
-                case 'h': points = '[[0,0.5],[1,0.5]]'; break;
-                case 'none': points = null; break;
-            }
+            var points = CONSTRAINT_PRESETS[value];
             graph.getModel().beginUpdate();
             try {
                 for (var i = 0; i < cells.length; i++) {
@@ -316,13 +302,8 @@
             return;
         }
 
-        if (key === 'aspect' && value === '0') {
-            removeStyleKey(graph, cells, 'aspect');
-            return;
-        }
-
-        if (key === 'container' && value === '0') {
-            removeStyleKey(graph, cells, 'container');
+        if (keysToRemove.indexOf(key) >= 0 && value === '0') {
+            removeStyleKey(graph, cells, key);
             return;
         }
 
@@ -343,6 +324,13 @@
         return match ? match[1] : null;
     }
 
+    var CONSTRAINT_PRESETS = {
+        'all': '[[0.5,0],[1,0.5],[0.5,1],[0,0.5]]',
+        'v': '[[0.5,0],[0.5,1]]',
+        'h': '[[0,0.5],[1,0.5]]',
+        'none': null
+    };
+
     /**
      * @param {mxGraph} graph
      * @param {mxCell} cell
@@ -352,9 +340,9 @@
         var raw = getCurrentVal(graph, cell, 'points');
         if (!raw) return 'none';
         var normalized = raw.replace(/\s/g, '');
-        if (normalized === '[[0.5,0],[1,0.5],[0.5,1],[0,0.5]]') return 'all';
-        if (normalized === '[[0.5,0],[0.5,1]]') return 'v';
-        if (normalized === '[[0,0.5],[1,0.5]]') return 'h';
+        for (var key in CONSTRAINT_PRESETS) {
+            if (CONSTRAINT_PRESETS[key] === normalized) return key;
+        }
         return 'none';
     }
 
@@ -473,17 +461,14 @@
         }, styleParent);
 
         var savedStyles = getSavedStyles();
-        var applied = false;
-
-        savedStyles.forEach(function(item) {
-            if (!applied) {
-                menu.addSeparator(styleParent);
-                applied = true;
-            }
-            menu.addItem(item.name, null, function() {
-                applyStyleValues(graph, graph.getSelectionCells(), item.style);
-            }, styleParent);
-        });
+        if (savedStyles.length > 0) {
+            menu.addSeparator(styleParent);
+            savedStyles.forEach(function(item) {
+                menu.addItem(item.name, null, function() {
+                    applyStyleValues(graph, graph.getSelectionCells(), item.style);
+                }, styleParent);
+            });
+        }
     }
 
     Draw.loadPlugin(function(ui) {

@@ -54,21 +54,22 @@
             // Add CSS styling including Drag and Drop visual indicators
             var style = document.createElement('style');
             style.type = 'text/css';
-            style.innerHTML = 
-                '.hierarchy-item { padding: 4px 6px; border-bottom: 1px solid #f3f4f6; display: flex; align-items: center; justify-content: space-between; transition: border 0.1s, background-color 0.1s; outline: none; }' +
-                '.hierarchy-item:hover { background-color: #f3f4f6; }' +
-                '.hierarchy-item-selected { background-color: #dbeafe !important; border-left: 3px solid #2563eb; }' +
-                '.hierarchy-item-label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex-grow: 1; display: flex; align-items: center; cursor: pointer; }' +
-                '.hierarchy-drag-handle { cursor: grab; padding: 0 4px; color: #9ca3af; font-family: sans-serif; font-size: 14px; user-select: none; margin-right: 4px; flex-shrink: 0; }' +
-                '.hierarchy-drag-handle:active { cursor: grabbing; }' +
-                '.hierarchy-vis-btn { cursor: pointer; margin-right: 6px; display: inline-flex; align-items: center; justify-content: center; user-select: none; flex-shrink: 0; transition: opacity 0.15s, color 0.15s; }' +
-                '.hierarchy-vis-btn:hover { opacity: 1.0 !important; color: #2563eb !important; }' +
-                '.hierarchy-rename-btn { cursor: pointer; font-size: 12px; margin-left: 6px; user-select: none; flex-shrink: 0; transition: opacity 0.1s; }' +
-                '.hierarchy-item-badge { font-size: 10px; color: #9ca3af; background-color: #f3f4f6; padding: 1px 4px; border-radius: 4px; margin-left: 6px; flex-shrink: 0; }' +
-                '.hierarchy-children { margin-left: 12px; border-left: 1px dashed #e5e7eb; }' +
-                '.drag-over-inside { background-color: #bfdbfe !important; }' +
-                '.drag-over-before { border-top: 2px solid #2563eb !important; }' +
-                '.drag-over-after { border-bottom: 2px solid #2563eb !important; }';
+            style.innerHTML = [
+                '.hierarchy-item { padding: 4px 6px; border-bottom: 1px solid #f3f4f6; display: flex; align-items: center; justify-content: space-between; transition: border 0.1s, background-color 0.1s; outline: none; }',
+                '.hierarchy-item:hover { background-color: #f3f4f6; }',
+                '.hierarchy-item-selected { background-color: #dbeafe !important; border-left: 3px solid #2563eb; }',
+                '.hierarchy-item-label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex-grow: 1; display: flex; align-items: center; cursor: pointer; }',
+                '.hierarchy-drag-handle { cursor: grab; padding: 0 4px; color: #9ca3af; font-family: sans-serif; font-size: 14px; user-select: none; margin-right: 4px; flex-shrink: 0; }',
+                '.hierarchy-drag-handle:active { cursor: grabbing; }',
+                '.hierarchy-vis-btn { cursor: pointer; margin-right: 6px; display: inline-flex; align-items: center; justify-content: center; user-select: none; flex-shrink: 0; transition: opacity 0.15s, color 0.15s; }',
+                '.hierarchy-vis-btn:hover { opacity: 1.0 !important; color: #2563eb !important; }',
+                '.hierarchy-rename-btn { cursor: pointer; font-size: 12px; margin-left: 6px; user-select: none; flex-shrink: 0; transition: opacity 0.1s; }',
+                '.hierarchy-item-badge { font-size: 10px; color: #9ca3af; background-color: #f3f4f6; padding: 1px 4px; border-radius: 4px; margin-left: 6px; flex-shrink: 0; }',
+                '.hierarchy-children { margin-left: 12px; border-left: 1px dashed #e5e7eb; }',
+                '.drag-over-inside { background-color: #bfdbfe !important; }',
+                '.drag-over-before { border-top: 2px solid #2563eb !important; }',
+                '.drag-over-after { border-bottom: 2px solid #2563eb !important; }'
+            ].join('\n');
             (document.head || document.getElementsByTagName('head')[0]).appendChild(style);
 
             // Create mxWindow
@@ -78,24 +79,26 @@
 
             var STORAGE_KEY = 'drawio-hierarchy-viewer-state';
 
+            var WINDOW_EL_CANDIDATES = [null, null, null]; // populated after wnd creation
+            WINDOW_EL_CANDIDATES[0] = wnd.div;
+            WINDOW_EL_CANDIDATES[1] = wnd.table;
+            WINDOW_EL_CANDIDATES[2] = wnd.contentDiv;
+
             function saveSettings() {
                 try {
                     var el;
-                    var candidates = [wnd.div, wnd.table, wnd.contentDiv];
-                    for (var i = 0; i < candidates.length; i++) {
-                        var c = candidates[i];
+                    for (var i = 0; i < WINDOW_EL_CANDIDATES.length; i++) {
+                        var c = WINDOW_EL_CANDIDATES[i];
                         if (c && c.style && !isNaN(parseInt(c.style.left)) && !isNaN(parseInt(c.style.top))) {
                             el = c;
                             break;
                         }
                     }
                     if (!el) return;
-                    var x = parseInt(el.style.left);
-                    var y = parseInt(el.style.top);
                     var state = {
                         visible: wnd.isVisible(),
-                        x: x,
-                        y: y,
+                        x: parseInt(el.style.left),
+                        y: parseInt(el.style.top),
                         w: el.offsetWidth,
                         h: el.offsetHeight
                     };
@@ -141,12 +144,8 @@
              * @returns {boolean}
              */
             function isDescendant(parent, child) {
-                var node = child;
-                while (node != null) {
-                    if (node === parent) {
-                        return true;
-                    }
-                    node = node.getParent();
+                for (var node = child; node != null; node = node.getParent()) {
+                    if (node === parent) return true;
                 }
                 return false;
             }
@@ -168,13 +167,11 @@
              * @returns {string}
              */
             function getRawCellLabel(cell) {
-                if (cell.value) {
-                    if (typeof cell.value === 'object' && cell.value.getAttribute) {
-                        return cell.value.getAttribute('label') || '';
-                    }
-                    return String(cell.value);
+                if (!cell.value) return '';
+                if (typeof cell.value === 'object' && cell.value.getAttribute) {
+                    return cell.value.getAttribute('label') || '';
                 }
-                return '';
+                return String(cell.value);
             }
 
             /**
@@ -184,13 +181,10 @@
             function getCellLabel(cell) {
                 var raw = getRawCellLabel(cell);
                 if (raw) return raw;
-
                 if (graph.model.isEdge(cell)) {
                     var source = cell.getTerminal(true);
                     var target = cell.getTerminal(false);
-                    var sourceLabel = source ? getCellLabel(source) : '?';
-                    var targetLabel = target ? getCellLabel(target) : '?';
-                    return sourceLabel + ' → ' + targetLabel;
+                    return (source ? getCellLabel(source) : '?') + ' → ' + (target ? getCellLabel(target) : '?');
                 }
                 return '[図形 ' + (cell.id || '') + ']';
             }
