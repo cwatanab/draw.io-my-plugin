@@ -1,13 +1,24 @@
 /**
  * draw.io Swap Click/Alt+Click Plugin
  *
- * 透明クリック判定（Altダウン）の動作をトグル反転させ、
- * Altキーを使わず通常クリックで背面オブジェクトを選択可能にします。
+ * 通常の左クリックと Alt+左クリックの transparent click 動作を入れ替えます。
+ * - 左クリック: 選択済みの前面オブジェクトをスルーして背面オブジェクトを選択
+ * - Alt+左クリック: draw.io 標準の通常クリックとして前面オブジェクトを選択
  */
 (function() {
     'use strict';
 
     var pluginName = 'Swap Click/Alt';
+    var STORAGE_KEY = 'drawio-swap-click-alt-enabled';
+    var graphMarker = '__swapClickAltGraphPatched';
+    var handlerMarker = '__swapClickAltGraphHandlerPatched';
+    var forcedCellField = '__swapClickAltForcedCell';
+    var legacyClickThroughMarker = '__clickThroughTransparentPatched';
+    var patchVersion = 3;
+
+    var state = {
+        enabled: true
+    };
 
     /**
      * @param {string} message
@@ -27,48 +38,402 @@
         }
     }
 
+    /**
+     * @returns {boolean}
+     */
+    function readEnabledState() {
+        try {
+            var value = localStorage.getItem(STORAGE_KEY);
+            return value == null ? true : value === 'true';
+        } catch (e) {
+            warn('Failed to read swap state: ' + e);
+            return true;
+        }
+    }
+
+    /**
+     * @param {boolean} enabled
+     */
+    function writeEnabledState(enabled) {
+        try {
+            localStorage.setItem(STORAGE_KEY, String(enabled));
+        } catch (e) {
+            warn('Failed to save swap state: ' + e);
+        }
+    }
+
+    /**
+     * @returns {boolean}
+     */
+    function isSwapEnabled() {
+        return state.enabled === true;
+    }
+
+    /**
+     * @param {Event} evt
+     * @returns {boolean}
+     */
+    function isAltDown(evt) {
+        if (evt == null) {
+            return false;
+        }
+
+        if (typeof mxEvent !== 'undefined' && mxEvent.isAltDown) {
+            return mxEvent.isAltDown(evt);
+        }
+
+        return !!evt.altKey;
+    }
+
+    /**
+     * @param {Event} evt
+     * @returns {boolean}
+     */
+    function isShiftDown(evt) {
+        if (evt == null) {
+            return false;
+        }
+
+        if (typeof mxEvent !== 'undefined' && mxEvent.isShiftDown) {
+            return mxEvent.isShiftDown(evt);
+        }
+
+        return !!evt.shiftKey;
+    }
+
+    /**
+     * @param {Event} evt
+     * @returns {boolean}
+     */
+    function isTransparentModifierDown(evt) {
+        return isAltDown(evt) ||
+            (typeof mxClient !== 'undefined' && mxClient.IS_CHROMEOS && isShiftDown(evt));
+    }
+
+    /**
+     * @param {Event} evt
+     * @returns {boolean}
+     */
+    function isLeftMouseEvent(evt) {
+        if (evt == null) {
+            return false;
+        }
+
+        if (typeof mxEvent !== 'undefined' && mxEvent.isLeftMouseButton) {
+            return mxEvent.isLeftMouseButton(evt);
+        }
+
+        return evt.button == null || evt.button === 0;
+    }
+
+    /**
+     * @param {mxMouseEvent} me
+     * @returns {Event|null}
+     */
+    function getEvent(me) {
+        return me != null && me.getEvent != null ? me.getEvent() : null;
+    }
+
+    /**
+     * @param {mxMouseEvent} me
+     * @returns {mxCell|null}
+     */
+    function getMouseCell(me) {
+        if (me != null && me.getCell != null) {
+            var cell = me.getCell();
+
+            if (cell != null) {
+                return cell;
+            }
+        }
+
+        var state = (me != null && me.getState != null) ? me.getState() : null;
+        return state != null ? state.cell : null;
+    }
+
+    /**
+     * @param {mxMouseEvent} me
+     * @returns {number|null}
+     */
+    function getGraphX(me) {
+        if (me == null) {
+            return null;
+        }
+
+        return me.graphX != null ? me.graphX :
+            (me.getGraphX != null ? me.getGraphX() : null);
+    }
+
+    /**
+     * @param {mxMouseEvent} me
+     * @returns {number|null}
+     */
+    function getGraphY(me) {
+        if (me == null) {
+            return null;
+        }
+
+        return me.graphY != null ? me.graphY :
+            (me.getGraphY != null ? me.getGraphY() : null);
+    }
+
+    /**
+     * @param {mxGraph} graph
+     * @param {mxMouseEvent} me
+     * @param {Function} ignoreFn
+     * @returns {mxCell|null}
+     */
+    function getCellAt(graph, me, ignoreFn) {
+        var x = getGraphX(me);
+        var y = getGraphY(me);
+
+        if (graph == null || graph.getCellAt == null || x == null || y == null) {
+            return null;
+        }
+
+        return graph.getCellAt(x, y, null, null, null, ignoreFn);
+    }
+
+    /**
+     * draw.io 標準の transparent click と同じ判定で、選択済みセルの背面セルを返します。
+     * @param {mxGraph} graph
+     * @param {mxMouseEvent} me
+     * @param {mxCell} cell
+     * @returns {mxCell|null}
+     */
+    function getNativeTransparentClickCell(graph, me, cell) {
+        var active = false;
+
+        return getCellAt(graph, me, function(cellState) {
+            var selected = graph.isCellSelected(cellState.cell);
+            active = active || selected;
+
+            return !active || selected ||
+                (cellState.cell !== cell && graph.model.isAncestor(cellState.cell, cell));
+        });
+    }
+
+    /**
+     * @param {mxGraph} graph
+     * @param {mxMouseEvent} me
+     * @param {mxCell} cell
+     * @returns {mxCell|null}
+     */
+    function getChildCellBelow(graph, me, cell) {
+        var model = graph != null ? graph.model : null;
+
+        if (model == null ||
+            model.getChildCount == null ||
+            model.isAncestor == null ||
+            model.getChildCount(cell) === 0) {
+            return null;
+        }
+
+        var child = getCellAt(graph, me, function(cellState) {
+            return cellState.cell === cell;
+        });
+
+        return child != null && child !== cell && model.isAncestor(cell, child) ?
+            child :
+            null;
+    }
+
+    /**
+     * @param {mxGraphHandler} handler
+     * @param {mxMouseEvent} me
+     * @returns {mxCell|null}
+     */
+    function getSwappedLeftClickCell(handler, me) {
+        var graph = handler.graph;
+        var cell = getMouseCell(me);
+
+        if (cell == null) {
+            return null;
+        }
+
+        var transparentCell = getNativeTransparentClickCell(graph, me, cell);
+
+        if (transparentCell != null && transparentCell !== cell) {
+            return transparentCell;
+        }
+
+        return getChildCellBelow(graph, me, cell);
+    }
+
+    /**
+     * @param {mxMouseEvent} me
+     * @returns {boolean}
+     */
+    function shouldSwapLeftClick(me) {
+        var evt = getEvent(me);
+        return isSwapEnabled() && isLeftMouseEvent(evt) && !isTransparentModifierDown(evt);
+    }
+
+    /**
+     * @param {mxGraph} graph
+     * @returns {boolean}
+     */
+    function patchGraphTransparentClick(graph) {
+        if (graph == null || graph.isTransparentClickEvent == null) {
+            warn('graph.isTransparentClickEvent is not available.');
+            return false;
+        }
+
+        var previousPatch = graph[graphMarker];
+
+        if (previousPatch != null && previousPatch.version === patchVersion) {
+            previousPatch.isSwapEnabled = isSwapEnabled;
+            return true;
+        }
+
+        var originalIsTransparentClickEvent =
+            previousPatch != null && previousPatch.isTransparentClickEvent != null ?
+                previousPatch.isTransparentClickEvent :
+                graph.isTransparentClickEvent;
+
+        graph[graphMarker] = {
+            version: patchVersion,
+            isSwapEnabled: isSwapEnabled,
+            isTransparentClickEvent: originalIsTransparentClickEvent
+        };
+
+        graph.isTransparentClickEvent = function(evt) {
+            var patch = this[graphMarker];
+
+            if (patch != null &&
+                patch.isSwapEnabled != null &&
+                patch.isSwapEnabled() &&
+                isLeftMouseEvent(evt)) {
+                return false;
+            }
+
+            var original = patch != null && patch.isTransparentClickEvent != null ?
+                patch.isTransparentClickEvent :
+                originalIsTransparentClickEvent;
+
+            return original.apply(this, arguments);
+        };
+
+        return true;
+    }
+
+    /**
+     * @param {Object} prototype
+     * @param {string} name
+     * @returns {Function}
+     */
+    function getOriginalHandlerMethod(prototype, name) {
+        var previousPatch = prototype[handlerMarker];
+
+        if (previousPatch != null && previousPatch[name] != null) {
+            return previousPatch[name];
+        }
+
+        var legacyPatch = prototype[legacyClickThroughMarker];
+
+        if (legacyPatch != null && legacyPatch[name] != null) {
+            return legacyPatch[name];
+        }
+
+        return prototype[name];
+    }
+
+    /**
+     * @returns {boolean}
+     */
+    function patchGraphHandler() {
+        if (typeof mxGraphHandler === 'undefined' ||
+            mxGraphHandler.prototype == null ||
+            mxGraphHandler.prototype.getInitialCellForEvent == null ||
+            mxGraphHandler.prototype.selectCellForEvent == null) {
+            warn('mxGraphHandler is not available; selection hook was not installed.');
+            return false;
+        }
+
+        var prototype = mxGraphHandler.prototype;
+        var originalGetInitialCellForEvent =
+            getOriginalHandlerMethod(prototype, 'getInitialCellForEvent');
+        var originalSelectCellForEvent =
+            getOriginalHandlerMethod(prototype, 'selectCellForEvent');
+
+        prototype[handlerMarker] = {
+            version: patchVersion,
+            isSwapEnabled: isSwapEnabled,
+            getInitialCellForEvent: originalGetInitialCellForEvent,
+            selectCellForEvent: originalSelectCellForEvent
+        };
+
+        prototype.getInitialCellForEvent = function(me) {
+            this[forcedCellField] = null;
+
+            if (!shouldSwapLeftClick(me)) {
+                return originalGetInitialCellForEvent.apply(this, arguments);
+            }
+
+            var cell = getSwappedLeftClickCell(this, me);
+
+            if (cell != null) {
+                this[forcedCellField] = cell;
+                return cell;
+            }
+
+            return originalGetInitialCellForEvent.apply(this, arguments);
+        };
+
+        prototype.selectCellForEvent = function(cell, me) {
+            if (!shouldSwapLeftClick(me)) {
+                this[forcedCellField] = null;
+                return originalSelectCellForEvent.apply(this, arguments);
+            }
+
+            if (this[forcedCellField] !== cell) {
+                this[forcedCellField] = null;
+                return originalSelectCellForEvent.apply(this, arguments);
+            }
+
+            this[forcedCellField] = null;
+
+            var state = this.graph.view.getState(cell);
+
+            if (state != null) {
+                this.graph.selectCellForEvent(cell, me.getEvent());
+            }
+
+            return cell;
+        };
+
+        return true;
+    }
+
     if (typeof Draw === 'undefined' || Draw.loadPlugin == null) {
         warn('Draw.loadPlugin is not available.');
         return;
     }
 
     Draw.loadPlugin(function(ui) {
-        var STORAGE_KEY = 'drawio-swap-click-alt-enabled';
-        var swapEnabled = false;
+        var graph = ui != null && ui.editor != null ? ui.editor.graph : null;
 
-        try {
-            swapEnabled = localStorage.getItem(STORAGE_KEY) === 'true';
-        } catch (e) { warn('Failed to read swap state: ' + e); }
+        state.enabled = readEnabledState();
 
-        var graph = ui.editor.graph;
-        var origIsTransparentClickEvent = graph.isTransparentClickEvent;
+        var graphPatched = patchGraphTransparentClick(graph);
+        var handlerPatched = patchGraphHandler();
 
-        /**
-         * swapEnabled が true の場合、Altキー非押下時に背面オブジェクトを選択するよう挙動を反転する
-         * @param {Event} evt
-         * @returns {boolean}
-         */
-        graph.isTransparentClickEvent = function(evt) {
-            if (swapEnabled) {
-                return !mxEvent.isAltDown(evt) || (mxClient.IS_CHROMEOS && mxEvent.isShiftDown(evt));
-            }
-            return origIsTransparentClickEvent.apply(this, arguments);
-        };
-
-        mxResources.parse('swapClickAlt=Swap Click/Alt+Click');
+        mxResources.parse('swapClickAlt=左クリックとALT+左クリックを入替');
 
         var action = ui.actions.addAction('swapClickAlt', function() {
-            swapEnabled = !swapEnabled;
-            try {
-                localStorage.setItem(STORAGE_KEY, String(swapEnabled));
-            } catch (e) { warn('Failed to save swap state: ' + e); }
+            state.enabled = !state.enabled;
+            writeEnabledState(state.enabled);
+            log('swap is now ' + (state.enabled ? 'enabled' : 'disabled') + '.');
         });
 
         action.setToggleAction(true);
-        action.setSelectedCallback(function() { return swapEnabled; });
+        action.setSelectedCallback(function() {
+            return state.enabled;
+        });
 
         if (ui.menus) {
             var menu = ui.menus.get('extras') || ui.menus.get('view');
+
             if (menu) {
                 var oldFunct = menu.funct;
 
@@ -76,12 +441,15 @@
                     oldFunct.apply(this, arguments);
                     ui.menus.addMenuItems(menu, ['-', 'swapClickAlt'], parent);
                 };
-                log('registered in menu successfully');
+
+                log('registered in menu successfully.');
             } else {
-                warn('Extras or View menu not found');
+                warn('Extras or View menu not found.');
             }
         }
 
-        log('loaded.');
+        log('loaded. enabled=' + state.enabled +
+            ', graphPatched=' + graphPatched +
+            ', handlerPatched=' + handlerPatched);
     });
 })();
