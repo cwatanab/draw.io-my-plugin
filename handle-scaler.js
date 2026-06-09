@@ -7,14 +7,20 @@
 (function() {
     'use strict';
 
-    var pluginName = 'Handle Scaler';
+    var PLUGIN_NAME = 'Handle Scaler';
+    var PATCH_VERSION = 2;
+    var VERTEX_HANDLER_MARKER = '__handleScalerVertexHandlerPatched';
+    var EDGE_HANDLER_MARKER = '__handleScalerEdgeHandlerPatched';
+    var ELBOW_HANDLER_MARKER = '__handleScalerElbowHandlerPatched';
+    var CONSTRAINT_HANDLER_MARKER = '__handleScalerConstraintHandlerPatched';
+    var GRAPH_LISTENER_MARKER = '__handleScalerGraphListeners';
 
     /**
      * @param {string} message
      */
     function log(message) {
         if (typeof console !== 'undefined' && console.log) {
-            console.log(pluginName + ': ' + message);
+            console.log(PLUGIN_NAME + ': ' + message);
         }
     }
 
@@ -23,7 +29,59 @@
      */
     function warn(message) {
         if (typeof console !== 'undefined' && console.warn) {
-            console.warn(pluginName + ': ' + message);
+            console.warn(PLUGIN_NAME + ': ' + message);
+        }
+    }
+
+    /**
+     * @returns {boolean}
+     */
+    function hasDrawPluginLoader() {
+        return typeof Draw !== 'undefined' && Draw.loadPlugin != null;
+    }
+
+    /**
+     * @param {Object} prototype
+     * @param {string} marker
+     * @param {string} methodName
+     * @returns {Function}
+     */
+    function getOriginalMethod(prototype, marker, methodName) {
+        var patch = prototype != null ? prototype[marker] : null;
+
+        if (patch != null && Object.prototype.hasOwnProperty.call(patch, methodName)) {
+            return patch[methodName];
+        }
+
+        return prototype != null ? prototype[methodName] : null;
+    }
+
+    /**
+     * @param {Object} prototype
+     * @param {string} marker
+     * @param {string} methodName
+     * @param {Function} original
+     */
+    function rememberOriginalMethod(prototype, marker, methodName, original) {
+        var patch = prototype[marker];
+
+        if (patch == null || patch.version !== PATCH_VERSION) {
+            patch = { version: PATCH_VERSION };
+            prototype[marker] = patch;
+        }
+
+        patch[methodName] = original;
+    }
+
+    /**
+     * @param {Object} source
+     * @param {Function} listener
+     */
+    function removeListener(source, listener) {
+        if (source != null &&
+            listener != null &&
+            typeof source.removeListener === 'function') {
+            source.removeListener(listener);
         }
     }
 
@@ -41,7 +99,7 @@
         maxPointScale: 2       // ズーム時の接続ポイントサイズの上限倍率（初期値の何倍まで拡大するか）
     };
 
-    if (typeof Draw === 'undefined' || Draw.loadPlugin == null) {
+    if (!hasDrawPluginLoader()) {
         warn('Draw.loadPlugin is not available.');
         return;
     }
@@ -256,7 +314,18 @@
 
         // 1. ハンドル形状設定のオーバーライド
         if (typeof mxVertexHandler !== 'undefined' && mxVertexHandler.prototype) {
-            var originalVertexSizer = mxVertexHandler.prototype.createSizerShape;
+            var originalVertexSizer = getOriginalMethod(
+                mxVertexHandler.prototype,
+                VERTEX_HANDLER_MARKER,
+                'createSizerShape'
+            );
+            rememberOriginalMethod(
+                mxVertexHandler.prototype,
+                VERTEX_HANDLER_MARKER,
+                'createSizerShape',
+                originalVertexSizer
+            );
+
             mxVertexHandler.prototype.createSizerShape = function(bounds, index, fillColor) {
                 if (index !== mxEvent.ROTATION_HANDLE) {
                     return getSizerShape(bounds, index, fillColor);
@@ -265,16 +334,41 @@
             };
         }
         if (typeof mxEdgeHandler !== 'undefined' && mxEdgeHandler.prototype) {
+            rememberOriginalMethod(
+                mxEdgeHandler.prototype,
+                EDGE_HANDLER_MARKER,
+                'createSizerShape',
+                getOriginalMethod(mxEdgeHandler.prototype, EDGE_HANDLER_MARKER, 'createSizerShape')
+            );
+            rememberOriginalMethod(
+                mxEdgeHandler.prototype,
+                EDGE_HANDLER_MARKER,
+                'createHandleShape',
+                getOriginalMethod(mxEdgeHandler.prototype, EDGE_HANDLER_MARKER, 'createHandleShape')
+            );
+
             mxEdgeHandler.prototype.createSizerShape = function(bounds, index, fillColor) {
                 return getSizerShape(bounds, index, fillColor);
             };
+
             mxEdgeHandler.prototype.createHandleShape = function(index, source, isTarget) {
                 return createEdgeHandleShape(this, index, isTarget);
             };
         }
         if (typeof mxElbowEdgeHandler !== 'undefined' && mxElbowEdgeHandler.prototype &&
             typeof mxElbowEdgeHandler.prototype.createVirtualBend === 'function') {
-            var originalElbowCreateVirtualBend = mxElbowEdgeHandler.prototype.createVirtualBend;
+            var originalElbowCreateVirtualBend = getOriginalMethod(
+                mxElbowEdgeHandler.prototype,
+                ELBOW_HANDLER_MARKER,
+                'createVirtualBend'
+            );
+            rememberOriginalMethod(
+                mxElbowEdgeHandler.prototype,
+                ELBOW_HANDLER_MARKER,
+                'createVirtualBend',
+                originalElbowCreateVirtualBend
+            );
+
             mxElbowEdgeHandler.prototype.createVirtualBend = function() {
                 var bend = originalElbowCreateVirtualBend.apply(this, arguments);
                 setShapeSize(bend, getEdgeHandleSize('middle'), false, false);
@@ -284,14 +378,36 @@
 
         // 2. ズーム時に既存のハンドルの大きさが追従するように redraw を拡張
         if (typeof mxVertexHandler !== 'undefined' && mxVertexHandler.prototype) {
-            var originalVertexRedraw = mxVertexHandler.prototype.redraw;
+            var originalVertexRedraw = getOriginalMethod(
+                mxVertexHandler.prototype,
+                VERTEX_HANDLER_MARKER,
+                'redraw'
+            );
+            rememberOriginalMethod(
+                mxVertexHandler.prototype,
+                VERTEX_HANDLER_MARKER,
+                'redraw',
+                originalVertexRedraw
+            );
+
             mxVertexHandler.prototype.redraw = function() {
                 updateSizersBounds(this.sizers, this.labelShape, this.rotationShape);
                 originalVertexRedraw.apply(this, arguments);
             };
         }
         if (typeof mxEdgeHandler !== 'undefined' && mxEdgeHandler.prototype) {
-            var originalEdgeRedrawHandles = mxEdgeHandler.prototype.redrawHandles;
+            var originalEdgeRedrawHandles = getOriginalMethod(
+                mxEdgeHandler.prototype,
+                EDGE_HANDLER_MARKER,
+                'redrawHandles'
+            );
+            rememberOriginalMethod(
+                mxEdgeHandler.prototype,
+                EDGE_HANDLER_MARKER,
+                'redrawHandles',
+                originalEdgeRedrawHandles
+            );
+
             mxEdgeHandler.prototype.redrawHandles = function() {
                 updateEdgeHandleBounds(this, false);
                 originalEdgeRedrawHandles.apply(this, arguments);
@@ -305,7 +421,18 @@
             var oldPointImage = mxConstraintHandler.prototype.pointImage;
             originalPointImageSrc = oldPointImage ? oldPointImage.src : (typeof mxClient !== 'undefined' ? mxClient.imageBasePath : '') + '/point.gif';
 
-            var originalGetTolerance = mxConstraintHandler.prototype.getTolerance;
+            var originalGetTolerance = getOriginalMethod(
+                mxConstraintHandler.prototype,
+                CONSTRAINT_HANDLER_MARKER,
+                'getTolerance'
+            );
+            rememberOriginalMethod(
+                mxConstraintHandler.prototype,
+                CONSTRAINT_HANDLER_MARKER,
+                'getTolerance',
+                originalGetTolerance
+            );
+
             mxConstraintHandler.prototype.getTolerance = function(me) {
                 var tol = originalGetTolerance ? originalGetTolerance.apply(this, arguments) : this.graph.getTolerance();
                 var scale = (this.graph && this.graph.view) ? (this.graph.view.scale || 1) : 1;
@@ -356,6 +483,19 @@
         // 初期実行
         updateSizes();
 
+        var previousGraphListeners = graph != null ? graph[GRAPH_LISTENER_MARKER] : null;
+
+        if (previousGraphListeners != null) {
+            removeListener(
+                graph != null ? graph.view : null,
+                previousGraphListeners.updateSizes
+            );
+            removeListener(
+                graph != null && graph.getSelectionModel ? graph.getSelectionModel() : null,
+                previousGraphListeners.updateSizes
+            );
+        }
+
         // ズームイベントリスナーの登録
         if (graph && graph.view) {
             graph.view.addListener(mxEvent.SCALE, updateSizes);
@@ -363,6 +503,13 @@
         }
         if (graph && graph.getSelectionModel && graph.getSelectionModel() != null) {
             graph.getSelectionModel().addListener(mxEvent.CHANGE, updateSizes);
+        }
+
+        if (graph != null) {
+            graph[GRAPH_LISTENER_MARKER] = {
+                version: PATCH_VERSION,
+                updateSizes: updateSizes
+            };
         }
 
         log('loaded (handleSize=' + CONFIG.handleSize +

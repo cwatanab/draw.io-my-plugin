@@ -4,14 +4,20 @@
 (function() {
     'use strict';
 
-    var pluginName = 'Hierarchy Viewer';
+    var PLUGIN_NAME = 'Hierarchy Viewer';
+    var STORAGE_KEY = 'drawio-hierarchy-viewer-state';
+    var STYLE_ELEMENT_ID = 'drawio-hierarchy-viewer-styles';
+    var ACTION_NAME = 'toggleHierarchyViewer';
+    var PATCH_VERSION = 2;
+    var MENU_PATCH_MARKER = '__hierarchyViewerMenuPatched';
+    var GRAPH_LISTENER_MARKER = '__hierarchyViewerGraphListeners';
 
     /**
      * @param {string} message
      */
     function log(message) {
         if (typeof console !== 'undefined' && console.log) {
-            console.log(pluginName + ': ' + message);
+            console.log(PLUGIN_NAME + ': ' + message);
         }
     }
 
@@ -20,11 +26,47 @@
      */
     function warn(message) {
         if (typeof console !== 'undefined' && console.warn) {
-            console.warn(pluginName + ': ' + message);
+            console.warn(PLUGIN_NAME + ': ' + message);
         }
     }
 
-    if (typeof Draw === 'undefined' || Draw.loadPlugin == null) {
+    /**
+     * @returns {boolean}
+     */
+    function hasDrawPluginLoader() {
+        return typeof Draw !== 'undefined' && Draw.loadPlugin != null;
+    }
+
+    /**
+     * @param {string} id
+     * @param {string} cssText
+     */
+    function ensureStyleElement(id, cssText) {
+        var style = document.getElementById(id);
+
+        if (style == null) {
+            style = document.createElement('style');
+            style.id = id;
+            style.type = 'text/css';
+            (document.head || document.getElementsByTagName('head')[0]).appendChild(style);
+        }
+
+        style.textContent = cssText;
+    }
+
+    /**
+     * @param {Object} source
+     * @param {Function} listener
+     */
+    function removeListener(source, listener) {
+        if (source != null &&
+            listener != null &&
+            typeof source.removeListener === 'function') {
+            source.removeListener(listener);
+        }
+    }
+
+    if (!hasDrawPluginLoader()) {
         warn('Draw.loadPlugin is not available.');
         return;
     }
@@ -42,9 +84,7 @@
             container.tabIndex = 0;
 
             // Add CSS styling including Drag and Drop visual indicators
-            var style = document.createElement('style');
-            style.type = 'text/css';
-            style.innerHTML = [
+            ensureStyleElement(STYLE_ELEMENT_ID, [
                 '.hierarchy-item { padding: 4px 6px; border-bottom: 1px solid #f3f4f6; display: flex; align-items: center; justify-content: space-between; transition: border 0.1s, background-color 0.1s; outline: none; }',
                 '.hierarchy-item:hover { background-color: #f3f4f6; }',
                 '.hierarchy-item-selected { background-color: #dbeafe !important; border-left: 3px solid #2563eb; }',
@@ -59,15 +99,12 @@
                 '.drag-over-inside { background-color: #bfdbfe !important; }',
                 '.drag-over-before { border-top: 2px solid #2563eb !important; }',
                 '.drag-over-after { border-bottom: 2px solid #2563eb !important; }'
-            ].join('\n');
-            (document.head || document.getElementsByTagName('head')[0]).appendChild(style);
+            ].join('\n'));
 
             // Create mxWindow
             var wnd = new mxWindow(windowTitle, container, 200, 100, 280, 420, true, true);
             wnd.setResizable(true);
             wnd.setScrollable(false); // Scroll handled by container div
-
-            var STORAGE_KEY = 'drawio-hierarchy-viewer-state';
 
             var WINDOW_EL_CANDIDATES = [wnd.div, wnd.table, wnd.contentDiv];
 
@@ -76,7 +113,9 @@
                     var el;
                     for (var i = 0; i < WINDOW_EL_CANDIDATES.length; i++) {
                         var c = WINDOW_EL_CANDIDATES[i];
-                        if (c && c.style && !isNaN(parseInt(c.style.left)) && !isNaN(parseInt(c.style.top))) {
+                        if (c && c.style &&
+                            !isNaN(parseInt(c.style.left, 10)) &&
+                            !isNaN(parseInt(c.style.top, 10))) {
                             el = c;
                             break;
                         }
@@ -84,8 +123,8 @@
                     if (!el) return;
                     var state = {
                         visible: wnd.isVisible(),
-                        x: parseInt(el.style.left),
-                        y: parseInt(el.style.top),
+                        x: parseInt(el.style.left, 10),
+                        y: parseInt(el.style.top, 10),
                         w: el.offsetWidth,
                         h: el.offsetHeight
                     };
@@ -98,12 +137,13 @@
                     var json = localStorage.getItem(STORAGE_KEY);
                     if (!json) return false;
                     var state = JSON.parse(json);
+                    if (state == null || typeof state !== 'object') return false;
                     if (!state.visible) return false;
                     wnd.setVisible(true);
-                    if (state.x != null && state.y != null) {
+                    if (typeof state.x === 'number' && typeof state.y === 'number') {
                         wnd.setLocation(state.x, state.y);
                     }
-                    if (state.w && state.h) {
+                    if (typeof state.w === 'number' && typeof state.h === 'number') {
                         wnd.setSize(state.w, state.h);
                     }
                     return true;
@@ -219,7 +259,7 @@
                     input.style.cssText = 'width:100%;box-sizing:border-box;padding:2px 4px;font-size:12px;border:1px solid #3b82f6;border-radius:3px;outline:none;margin:0 4px;';
 
                     labelSpan.innerHTML = '';
-                    labelSpan.innerText = prefix;
+                    labelSpan.textContent = prefix;
                     labelSpan.appendChild(input);
 
                     input.focus();
@@ -340,7 +380,7 @@
                 // Drag Handle
                 var dragHandle = document.createElement('span');
                 dragHandle.className = 'hierarchy-drag-handle';
-                dragHandle.innerText = '⋮⋮';
+                dragHandle.textContent = '⋮⋮';
                 dragHandle.title = 'ドラッグして順序・階層を移動';
                 item.appendChild(dragHandle);
 
@@ -384,7 +424,7 @@
                 // Label
                 var labelSpan = document.createElement('span');
                 labelSpan.className = 'hierarchy-item-label';
-                labelSpan.innerText = prefix + getCellLabel(cell);
+                labelSpan.textContent = prefix + getCellLabel(cell);
                 item.appendChild(labelSpan);
 
                 // Right side container for badges and actions
@@ -395,7 +435,7 @@
 
                 var renameBtn = document.createElement('span');
                 renameBtn.className = 'hierarchy-rename-btn';
-                renameBtn.innerText = '✏️';
+                renameBtn.textContent = '✏️';
                 renameBtn.style.opacity = '0.4';
                 renameBtn.title = '名前を変更 (F2 キーでも変更可能)';
                 renameBtn.onmouseover = function() { renameBtn.style.opacity = '1.0'; };
@@ -409,7 +449,7 @@
                     var total = parent.children.length;
                     var zBadge = document.createElement('span');
                     zBadge.className = 'hierarchy-item-badge';
-                    zBadge.innerText = 'Z:' + idx + '/' + (total - 1);
+                    zBadge.textContent = 'Z:' + idx + '/' + (total - 1);
                     zBadge.title = '重なり順 (インデックスが大きいほど前面)';
                     rightContainer.appendChild(zBadge);
                 }
@@ -484,7 +524,7 @@
                 if (root) {
                     container.appendChild(buildTreeDom(root, 0, false));
                 } else {
-                    container.innerText = 'オブジェクトが見つかりません。';
+                    container.textContent = 'オブジェクトが見つかりません。';
                 }
             }
 
@@ -504,8 +544,20 @@
                 if (wnd.isVisible()) refreshTree();
             }
 
+            var previousGraphListeners = graph[GRAPH_LISTENER_MARKER];
+
+            if (previousGraphListeners != null) {
+                removeListener(graph.getModel(), previousGraphListeners.refreshIfVisible);
+                removeListener(graph.getSelectionModel(), previousGraphListeners.refreshIfVisible);
+            }
+
             graph.getModel().addListener(mxEvent.CHANGE, refreshIfVisible);
-            graph.getSelectionModel().addListener(mxEvent.UNDO, refreshIfVisible);
+            graph.getSelectionModel().addListener(mxEvent.CHANGE, refreshIfVisible);
+
+            graph[GRAPH_LISTENER_MARKER] = {
+                version: PATCH_VERSION,
+                refreshIfVisible: refreshIfVisible
+            };
 
             /**
              * Toggle window visibility.
@@ -520,8 +572,7 @@
             }
 
             // Register window toggle action
-            var actionName = 'toggleHierarchyViewer';
-            var action = ui.actions.addAction(actionName, toggleWindow);
+            var action = ui.actions.addAction(ACTION_NAME, toggleWindow);
             action.label = menuLabel;
             action.setToggleAction(true);
             action.setSelectedCallback(function() { return wnd.isVisible(); });
@@ -532,14 +583,27 @@
             function registerMenu() {
                 var menu = ui.menus.get('extras') || ui.menus.get('view');
                 if (menu) {
-                    var oldFunct = menu.funct;
-                    menu.funct = function(m, parent) {
-                        oldFunct.apply(this, arguments);
-                        ui.menus.addMenuItems(m, ['-', actionName], parent);
+                    var previousPatch = menu[MENU_PATCH_MARKER];
+                    var oldFunct =
+                        previousPatch != null && previousPatch.funct != null ?
+                            previousPatch.funct :
+                            menu.funct;
+
+                    menu[MENU_PATCH_MARKER] = {
+                        version: PATCH_VERSION,
+                        funct: oldFunct
                     };
-                    log('registered in menu successfully');
+
+                    menu.funct = function(m, parent) {
+                        if (typeof oldFunct === 'function') {
+                            oldFunct.apply(this, arguments);
+                        }
+
+                        ui.menus.addMenuItems(m, ['-', ACTION_NAME], parent);
+                    };
+                    log('registered in menu successfully.');
                 } else {
-                    warn('Extras or View menu not found');
+                    warn('Extras or View menu not found.');
                 }
             }
 

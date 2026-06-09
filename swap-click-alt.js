@@ -8,13 +8,15 @@
 (function() {
     'use strict';
 
-    var pluginName = 'Swap Click/Alt';
+    var PLUGIN_NAME = 'Swap Click/Alt';
     var STORAGE_KEY = 'drawio-swap-click-alt-enabled';
-    var graphMarker = '__swapClickAltGraphPatched';
-    var handlerMarker = '__swapClickAltGraphHandlerPatched';
-    var forcedCellField = '__swapClickAltForcedCell';
-    var legacyClickThroughMarker = '__clickThroughTransparentPatched';
-    var patchVersion = 3;
+    var ACTION_NAME = 'swapClickAlt';
+    var PATCH_VERSION = 3;
+    var GRAPH_MARKER = '__swapClickAltGraphPatched';
+    var HANDLER_MARKER = '__swapClickAltGraphHandlerPatched';
+    var MENU_PATCH_MARKER = '__swapClickAltMenuPatched';
+    var FORCED_CELL_FIELD = '__swapClickAltForcedCell';
+    var LEGACY_CLICK_THROUGH_MARKER = '__clickThroughTransparentPatched';
 
     var state = {
         enabled: true
@@ -25,7 +27,7 @@
      */
     function log(message) {
         if (typeof console !== 'undefined' && console.log) {
-            console.log(pluginName + ': ' + message);
+            console.log(PLUGIN_NAME + ': ' + message);
         }
     }
 
@@ -34,8 +36,15 @@
      */
     function warn(message) {
         if (typeof console !== 'undefined' && console.warn) {
-            console.warn(pluginName + ': ' + message);
+            console.warn(PLUGIN_NAME + ': ' + message);
         }
+    }
+
+    /**
+     * @returns {boolean}
+     */
+    function hasDrawPluginLoader() {
+        return typeof Draw !== 'undefined' && Draw.loadPlugin != null;
     }
 
     /**
@@ -279,9 +288,9 @@
             return false;
         }
 
-        var previousPatch = graph[graphMarker];
+        var previousPatch = graph[GRAPH_MARKER];
 
-        if (previousPatch != null && previousPatch.version === patchVersion) {
+        if (previousPatch != null && previousPatch.version === PATCH_VERSION) {
             previousPatch.isSwapEnabled = isSwapEnabled;
             return true;
         }
@@ -291,14 +300,14 @@
                 previousPatch.isTransparentClickEvent :
                 graph.isTransparentClickEvent;
 
-        graph[graphMarker] = {
-            version: patchVersion,
+        graph[GRAPH_MARKER] = {
+            version: PATCH_VERSION,
             isSwapEnabled: isSwapEnabled,
             isTransparentClickEvent: originalIsTransparentClickEvent
         };
 
         graph.isTransparentClickEvent = function(evt) {
-            var patch = this[graphMarker];
+            var patch = this[GRAPH_MARKER];
 
             if (patch != null &&
                 patch.isSwapEnabled != null &&
@@ -323,13 +332,13 @@
      * @returns {Function}
      */
     function getOriginalHandlerMethod(prototype, name) {
-        var previousPatch = prototype[handlerMarker];
+        var previousPatch = prototype[HANDLER_MARKER];
 
         if (previousPatch != null && previousPatch[name] != null) {
             return previousPatch[name];
         }
 
-        var legacyPatch = prototype[legacyClickThroughMarker];
+        var legacyPatch = prototype[LEGACY_CLICK_THROUGH_MARKER];
 
         if (legacyPatch != null && legacyPatch[name] != null) {
             return legacyPatch[name];
@@ -356,15 +365,15 @@
         var originalSelectCellForEvent =
             getOriginalHandlerMethod(prototype, 'selectCellForEvent');
 
-        prototype[handlerMarker] = {
-            version: patchVersion,
+        prototype[HANDLER_MARKER] = {
+            version: PATCH_VERSION,
             isSwapEnabled: isSwapEnabled,
             getInitialCellForEvent: originalGetInitialCellForEvent,
             selectCellForEvent: originalSelectCellForEvent
         };
 
         prototype.getInitialCellForEvent = function(me) {
-            this[forcedCellField] = null;
+            this[FORCED_CELL_FIELD] = null;
 
             if (!shouldSwapLeftClick(me)) {
                 return originalGetInitialCellForEvent.apply(this, arguments);
@@ -373,7 +382,7 @@
             var cell = getSwappedLeftClickCell(this, me);
 
             if (cell != null) {
-                this[forcedCellField] = cell;
+                this[FORCED_CELL_FIELD] = cell;
                 return cell;
             }
 
@@ -382,16 +391,16 @@
 
         prototype.selectCellForEvent = function(cell, me) {
             if (!shouldSwapLeftClick(me)) {
-                this[forcedCellField] = null;
+                this[FORCED_CELL_FIELD] = null;
                 return originalSelectCellForEvent.apply(this, arguments);
             }
 
-            if (this[forcedCellField] !== cell) {
-                this[forcedCellField] = null;
+            if (this[FORCED_CELL_FIELD] !== cell) {
+                this[FORCED_CELL_FIELD] = null;
                 return originalSelectCellForEvent.apply(this, arguments);
             }
 
-            this[forcedCellField] = null;
+            this[FORCED_CELL_FIELD] = null;
 
             var state = this.graph.view.getState(cell);
 
@@ -405,7 +414,7 @@
         return true;
     }
 
-    if (typeof Draw === 'undefined' || Draw.loadPlugin == null) {
+    if (!hasDrawPluginLoader()) {
         warn('Draw.loadPlugin is not available.');
         return;
     }
@@ -418,9 +427,9 @@
         var graphPatched = patchGraphTransparentClick(graph);
         var handlerPatched = patchGraphHandler();
 
-        mxResources.parse('swapClickAlt=左クリックとALT+左クリックを入替');
+        mxResources.parse(ACTION_NAME + '=左クリックとALT+左クリックを入替');
 
-        var action = ui.actions.addAction('swapClickAlt', function() {
+        var action = ui.actions.addAction(ACTION_NAME, function() {
             state.enabled = !state.enabled;
             writeEnabledState(state.enabled);
             log('swap is now ' + (state.enabled ? 'enabled' : 'disabled') + '.');
@@ -435,11 +444,23 @@
             var menu = ui.menus.get('extras') || ui.menus.get('view');
 
             if (menu) {
-                var oldFunct = menu.funct;
+                var previousPatch = menu[MENU_PATCH_MARKER];
+                var oldFunct =
+                    previousPatch != null && previousPatch.funct != null ?
+                        previousPatch.funct :
+                        menu.funct;
+
+                menu[MENU_PATCH_MARKER] = {
+                    version: PATCH_VERSION,
+                    funct: oldFunct
+                };
 
                 menu.funct = function(menu, parent) {
-                    oldFunct.apply(this, arguments);
-                    ui.menus.addMenuItems(menu, ['-', 'swapClickAlt'], parent);
+                    if (typeof oldFunct === 'function') {
+                        oldFunct.apply(this, arguments);
+                    }
+
+                    ui.menus.addMenuItems(menu, ['-', ACTION_NAME], parent);
                 };
 
                 log('registered in menu successfully.');

@@ -4,15 +4,17 @@
 (function() {
     'use strict';
 
-    var pluginName = 'Quick Styler';
+    var PLUGIN_NAME = 'Quick Styler';
     var STORAGE_KEY = 'drawio-quick-styler-styles';
+    var PATCH_VERSION = 2;
+    var POPUP_MENU_MARKER = '__quickStylerPopupMenuPatched';
 
     /**
      * @param {string} message
      */
     function log(message) {
         if (typeof console !== 'undefined' && console.log) {
-            console.log(pluginName + ': ' + message);
+            console.log(PLUGIN_NAME + ': ' + message);
         }
     }
 
@@ -21,11 +23,18 @@
      */
     function warn(message) {
         if (typeof console !== 'undefined' && console.warn) {
-            console.warn(pluginName + ': ' + message);
+            console.warn(PLUGIN_NAME + ': ' + message);
         }
     }
 
-    if (typeof Draw === 'undefined' || Draw.loadPlugin == null) {
+    /**
+     * @returns {boolean}
+     */
+    function hasDrawPluginLoader() {
+        return typeof Draw !== 'undefined' && Draw.loadPlugin != null;
+    }
+
+    if (!hasDrawPluginLoader()) {
         warn('Draw.loadPlugin is not available.');
         return;
     }
@@ -155,16 +164,19 @@
     ].forEach(function(k) { STYLE_KEYS[k] = true; });
 
     /**
-     * @param {mxGraph} graph
      * @param {mxCell} cell
      * @returns {Object}
      */
-    function getStyleValues(graph, cell) {
+    function getStyleValues(cell) {
         var result = {};
-        cell.getStyle().split(';').forEach(function(pair) {
+        var style = cell.getStyle() || '';
+
+        style.split(';').forEach(function(pair) {
             var idx = pair.indexOf('=');
+
             if (idx > 0) {
                 var k = pair.substring(0, idx);
+
                 if (STYLE_KEYS[k]) {
                     result[k] = pair.substring(idx + 1);
                 }
@@ -173,7 +185,7 @@
         return result;
     }
 
-    var keysToRemove = ['glass', 'aspect', 'container'];
+    var KEYS_TO_REMOVE = ['glass', 'aspect', 'container'];
 
     /**
      * @param {mxGraph} graph
@@ -186,7 +198,7 @@
             var keys = Object.keys(styleObj);
             for (var i = 0; i < keys.length; i++) {
                 var k = keys[i];
-                if (keysToRemove.indexOf(k) >= 0 && styleObj[k] === '0') {
+                if (KEYS_TO_REMOVE.indexOf(k) >= 0 && styleObj[k] === '0') {
                     cells.forEach(function(c) {
                         var s = mxUtils.setStyle(graph.model.getStyle(c), k, null);
                         graph.model.setStyle(c, s);
@@ -224,7 +236,9 @@
     function getSavedStyles() {
         try {
             var raw = localStorage.getItem(STORAGE_KEY);
-            return raw ? JSON.parse(raw) : [];
+            var styles = raw ? JSON.parse(raw) : [];
+
+            return Array.isArray(styles) ? styles : [];
         } catch (e) {
             warn('Failed to read saved styles: ' + e);
             return [];
@@ -297,7 +311,7 @@
             return;
         }
 
-        if (keysToRemove.indexOf(key) >= 0 && value === '0') {
+        if (KEYS_TO_REMOVE.indexOf(key) >= 0 && value === '0') {
             removeStyleKey(graph, cells, key);
             return;
         }
@@ -351,7 +365,7 @@
         function save() {
             var name = input.value.trim();
             if (name) {
-                saveStyle(name, getStyleValues(graph, cell));
+                saveStyle(name, getStyleValues(cell));
                 input.value = '';
                 refreshDatalist();
             }
@@ -469,7 +483,22 @@
     Draw.loadPlugin(function(ui) {
         var graph = ui.editor.graph;
         var menus = ui.menus;
-        var originalCreatePopupMenu = menus.createPopupMenu;
+
+        if (menus == null || menus.createPopupMenu == null) {
+            warn('Popup menu hook is not available.');
+            return;
+        }
+
+        var previousPatch = menus[POPUP_MENU_MARKER];
+        var originalCreatePopupMenu =
+            previousPatch != null && previousPatch.createPopupMenu != null ?
+                previousPatch.createPopupMenu :
+                menus.createPopupMenu;
+
+        menus[POPUP_MENU_MARKER] = {
+            version: PATCH_VERSION,
+            createPopupMenu: originalCreatePopupMenu
+        };
 
         function addCheckableItem(menu, label, checked, action, parent) {
             var item = menu.addItem(label, null, action, parent);
