@@ -120,12 +120,35 @@ draw.io のデフォルトの操作ハンドルや接続ポイントはサイズ
 
 ---
 
+## 4. draw.io Swap Click/Alt+Click Plugin (`swap-click-alt.js`)
+
+通常の左クリックと Alt+左クリックの transparent click 動作を入れ替えるプラグインです。
+
+### 概要
+draw.io では、重なった図形を操作するときに Alt+左クリックで前面オブジェクトをスルーして背面オブジェクトを選択する挙動があります。
+本プラグインを導入すると、この操作を入れ替えて、Altキーを押さない通常の左クリックで背面オブジェクトを選択できるようにします。
+
+- **左クリック**: 選択済みの前面オブジェクトをスルーして背面オブジェクトを選択
+- **Alt+左クリック**: draw.io 標準の通常クリックとして前面オブジェクトを選択
+- **メニュー切替**: **「左クリックとALT+左クリックを入替」** で有効・無効を切替
+- **状態保存**: 有効・無効の状態は `localStorage` に保存されます
+
+### 使い方
+1. 重なっている前面オブジェクトを選択します。
+2. 通常の左クリックで、背面オブジェクトを選択します。
+3. 前面オブジェクトを通常通り選択したい場合は、Alt+左クリックします。
+
+メニュー項目は draw.io の **「その他」 (Extras)** または **「表示」 (View)** に追加されます。
+初回読み込み時は有効です。メニューから無効化すると、次回以降も無効状態が復元されます。
+
+---
+
 ## インストール手順（共通）
 
 各プラグインを適用するには以下の手順を行います。
 
 ### 1. プラグインファイルの配置
-本リポジトリ内のプラグインファイル（[quick-styler.js](quick-styler.js), [hierarchy-viewer.js](hierarchy-viewer.js) または [handle-scaler.js](handle-scaler.js)）をローカルの任意の場所に保存するか、Web サーバー等にホストします。
+本リポジトリ内のプラグインファイル（[quick-styler.js](quick-styler.js), [hierarchy-viewer.js](hierarchy-viewer.js), [handle-scaler.js](handle-scaler.js), [swap-click-alt.js](swap-click-alt.js)）をローカルの任意の場所に保存するか、Web サーバー等にホストします。
 
 ### 2. draw.io での登録
 1. [draw.io](https://app.diagrams.net/) をブラウザで開くか、デスクトップ版を起動します。
